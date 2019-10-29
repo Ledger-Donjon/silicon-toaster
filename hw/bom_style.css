@@ -1,0 +1,29 @@
+table {
+  border-spacing: 0px;
+  border-collapse: collapse;
+}
+
+table td {
+  border: 1px solid black;
+  padding: 4px;
+}
+
+table td:first-child {
+  width: 50%;
+}
+
+table th {
+  border: 1px solid black;
+  text-align: left;
+  padding: 4px;
+  padding-top: 16px;
+  padding-bottom: 16px;
+}
+
+table td:nth-child(3) {
+  text-align: center;
+}
+
+table td.price {
+  text-align: right;
+}

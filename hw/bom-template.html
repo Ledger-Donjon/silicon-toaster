@@ -1,0 +1,48 @@
+<html>
+  <head>
+    <link rel="stylesheet" type="text/css" href="bom_style.css">
+  </head>
+  <body>
+    <h1>Bill of Materials</h1>
+    Component count: {{ components|length }}<br>
+    Reference count: {{ groups|length }}<br>
+    Total cost: {{ total_cost }} &euro;<br>
+    <br>
+    <table>
+      <tr>
+        <th>Refs.</td>
+        <th>Value</td>
+        <th>Qt.</td>
+        <th>Manufacturer</td>
+        <th>Manufacturer ref.</td>
+        <th>Vendor</td>
+        <th>Vendor ref.</td>
+        <th>Price U.</td>
+        <th>Cost</td>
+      </tr>
+      {% for group in groups %}
+        <tr>
+          <td>{{ group.refs|join(', ') }}</td>
+          <td>{{ group.value }}</td>
+          <td>{{ group.refs|length }}</td>
+          <td>{{ group.manufacturer }}</td>
+          <td>{{ group.manufacturer_ref }}</td>
+          <td>{{ group.vendor }}</td>
+          <td>
+            {% if group.url is not none %}
+              <a href="{{ group.url }}">{{ group.vendor_ref }}</a>
+            {% else %}
+              {{ group.vendor_ref }}
+            {% endif %}
+          </td>
+          <td class="price">
+            {% if group.price is not none %}{{ group.price }} &euro;{% endif %}
+          </td>
+          <td class="price">
+            {% if group.price is not none %}{{ group.cost }} &euro;{% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+    </table>
+  </body>
+</html>
