@@ -156,9 +156,9 @@ pub extern "C" fn _start() -> ! {
         |w| { w.div_mantissa().bits(brr_value >> 4)
         .div_fraction().bits((brr_value & 0x0f) as u8) });
     // Select Alternate Function 7 (USART1) for PA9 and PA10.
-    peripherals.GPIOA.afrh.write(|w| { w.afrh10().bits(7).afrh9().bits(7) } );
+    peripherals.GPIOA.afrh.write(|w| { w.afrh10().bits(7).afrh9().bits(7) });
     peripherals.GPIOA.moder.write(
-        |w| { w.moder10().bits(2).moder9().bits(2) } );
+        |w| { w.moder10().bits(2).moder9().bits(2) });
     // Configure PA9 and PA10 GPIOs in high frequency
     peripherals.GPIOA.ospeedr.write(
         |w| { w.ospeedr10().bits(3).ospeedr9().bits(3) });
@@ -167,6 +167,19 @@ pub extern "C" fn _start() -> ! {
     unsafe {
         cortex_m::peripheral::NVIC::unmask(stm32f215::Interrupt::USART1);
     }
+
+    // Configure PWM using TIM1.
+    // PWM output on PA8. Alternate Function 1.
+    peripherals.RCC.apb2enr.modify(|_, w| { w.tim1en().set_bit() });
+    peripherals.TIM1.cr1.write(|w| { w.cen().set_bit() });
+    peripherals.TIM1.arr.write(|w| { w.arr().bits(100) });
+    peripherals.TIM1.ccr1.write(|w| { w.ccr().bits(50) });
+    peripherals.TIM1.bdtr.write(|w| { w.moe().set_bit() });
+    peripherals.TIM1.ccmr1_output().write(|w| { w.oc1m().bits(7) });
+    peripherals.TIM1.ccer.write(|w| { w.cc1e().set_bit() });
+    peripherals.GPIOA.ospeedr.modify(|_, w| { w.ospeedr8().bits(3) });
+    peripherals.GPIOA.afrh.modify(|_, w| { w.afrh8().bits(1) });
+    peripherals.GPIOA.moder.modify(|_, w| { w.moder8().bits(2) });
 
     // Give some time for the FT232 to boot-up.
     delay_ms(500);
