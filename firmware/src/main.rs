@@ -137,9 +137,10 @@ pub extern "C" fn _start() -> ! {
     // Enable clock for PORT A, PORT B and PORT C peripherals.
     peripherals.RCC.ahb1enr.write(
         |w| { w.gpioaen().set_bit().gpioben().set_bit().gpiocen().set_bit() } );
-    peripherals.GPIOC.moder.write(|w| { w.moder13().bits(1).moder14().bits(1) });
+    peripherals.GPIOC.moder.write(
+        |w| { w.moder13().output().moder14().output() });
     set_15v_regulator(&peripherals, false);
-    peripherals.GPIOB.moder.write(|w| { w.moder11().bits(1) });
+    peripherals.GPIOB.moder.write(|w| { w.moder11().output() });
 
     // Configure UART1
     // UART Enable, Transmitter Enable, Receiver Enable
@@ -158,9 +159,10 @@ pub extern "C" fn _start() -> ! {
     // Select Alternate Function 7 (USART1) for PA9 and PA10.
     let gpioa = &peripherals.GPIOA;
     gpioa.afrh.write(|w| { w.afrh10().af7().afrh9().af7() });
-    gpioa.moder.write(|w| { w.moder10().bits(2).moder9().bits(2) });
+    gpioa.moder.write(|w| { w.moder10().alternate().moder9().alternate() });
     // Configure PA9 and PA10 GPIOs in high frequency
-    gpioa.ospeedr.write(|w| { w.ospeedr10().bits(3).ospeedr9().bits(3) });
+    gpioa.ospeedr.write(
+        |w| { w.ospeedr10().very_high_speed().ospeedr9().very_high_speed() });
     // Enable interrupt for USART1
     peripherals.USART1.cr1.modify(|_, w| { w.rxneie().set_bit() });
     unsafe {
@@ -174,12 +176,12 @@ pub extern "C" fn _start() -> ! {
     tim1.cr1.write(|w| { w.cen().set_bit() });
     tim1.arr.write(|w| { w.arr().bits(100) });
     tim1.ccr1.write(|w| { w.ccr().bits(50) });
-    tim1.ccmr1_output().write(|w| { w.oc1m().bits(7) });
+    tim1.ccmr1_output().write(|w| { w.oc1m().pwm_mode1() });
     tim1.ccer.write(|w| { w.cc1e().set_bit() });
     tim1.bdtr.write(|w| { w.moe().set_bit() });
-    gpioa.ospeedr.modify(|_, w| { w.ospeedr8().bits(3) });
+    gpioa.ospeedr.modify(|_, w| { w.ospeedr8().very_high_speed() });
     gpioa.afrh.modify(|_, w| { w.afrh8().af1() });
-    gpioa.moder.modify(|_, w| { w.moder8().bits(2) });
+    gpioa.moder.modify(|_, w| { w.moder8().alternate() });
 
     // Give some time for the FT232 to boot-up.
     delay_ms(500);
