@@ -107,11 +107,13 @@ fn usart1_rx() -> u8 {
     }
 }
 
-/// Transmits a byte over USART1.
+/// Transmit a byte over USART1.
 /// `peripherals` - This method needs to borrow the peripherals.
 /// `value` - Byte to be transmitted.
 fn usart1_tx(peripherals: &stm32f215::Peripherals, value: u8) {
     peripherals.USART1.dr.write(|w| { w.dr().bits(value as u16) });
+    // Wait until byte is transferred into the shift-register.
+    while !peripherals.USART1.sr.read().txe().bit() {};
 }
 
 #[no_mangle]
