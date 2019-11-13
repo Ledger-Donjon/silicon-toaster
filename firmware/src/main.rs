@@ -107,6 +107,14 @@ fn usart1_rx() -> u8 {
     }
 }
 
+/// Receive a 16-bits unsigned int from USART1. Blocks until all data is
+/// available.
+fn usart1_rx_u16() -> u16 {
+    let h = usart1_rx();
+    let l = usart1_rx();
+    ((h as u16) << 8) + (l as u16)
+}
+
 /// Transmit a byte over USART1.
 /// `peripherals` - This method needs to borrow the peripherals.
 /// `value` - Byte to be transmitted.
@@ -114,6 +122,71 @@ fn usart1_tx(peripherals: &stm32f215::Peripherals, value: u8) {
     peripherals.USART1.dr.write(|w| { w.dr().bits(value as u16) });
     // Wait until byte is transferred into the shift-register.
     while !peripherals.USART1.sr.read().txe().bit() {};
+}
+
+/// Transmit a 16-bits word over USART1.
+/// `peripherals` - This method needs to borrow the peripherals.
+/// `value` - Byte to be transmitted.
+fn usart1_tx_u16(peripherals: &stm32f215::Peripherals, value: u16) {
+    usart1_tx(peripherals, (value >> 8) as u8);
+    usart1_tx(peripherals, (value & 0xff) as u8);
+}
+
+/// Enable or disable very-high voltage generation by enabling or disabling the
+/// PWM output and the on-board 15 V generator.
+/// `peripherals` - This method needs to borrow the peripherals.
+/// `state` - true to enable, false to disable.
+fn set_high_voltage_generator(peripherals: &stm32f215::Peripherals,
+    state: bool){
+    // When PWM if off, it seems the output pin is left floating. This is not
+    // good because charges will accumulate on the gate of the charge pump
+    // transistor, making it always conductive after a while and creating a
+    // permanent shortcut. To solve this issue, we force output to zero when
+    // high voltage generation if off.
+    if state {
+        peripherals.TIM1.bdtr.write(|w| { w.moe().set_bit() });
+        peripherals.GPIOA.moder.modify(|_, w| { w.moder8().alternate() });
+    } else {
+        peripherals.GPIOA.odr.modify(|_, w| { w.odr8().clear_bit() });
+        peripherals.GPIOA.moder.modify(|_, w| { w.moder8().output() });
+        peripherals.TIM1.bdtr.write(|w| { w.moe().clear_bit() });
+    }
+    set_15v_regulator(&peripherals, state);
+    set_led_red(&peripherals, state);
+    set_led_green(&peripherals, !state);
+}
+
+/// Configure PWM parameters for high voltage generation. If the parameters are
+/// invalid, this method may panic.
+/// `peripherals` - This method needs to borrow the peripherals.
+/// `period` - Maximum counter value to the timer. Defines the period of the
+///     PWM.
+/// `width` - Comparator value for the counter. Defines the PWM positive pulse
+///     width.
+fn set_pwm_parameters(peripherals: &stm32f215::Peripherals, period: u16,
+    width: u16) -> Result<(),()> {
+    if width > period {
+        return Err(());
+    }
+    if period == 0 {
+        return Err(());
+    }
+    let tim1 = &peripherals.TIM1;
+    tim1.arr.write(|w| { w.arr().bits(period-1) });
+    tim1.ccr1.write(|w| { w.ccr().bits(width) });
+    Ok(())
+}
+
+/// Perform software shoot.
+/// `peripherals` - This method needs to borrow the peripherals.
+/// `duration` - Pulse duration, in number of program loop.
+fn software_shoot(peripherals: &stm32f215::Peripherals, duration: u16){
+    let gpioa = &peripherals.GPIOA;
+    gpioa.odr.modify(|_, w| { w.odr13().set_bit() });
+    for _ in 0..duration {
+        cortex_m::asm::nop();
+    }
+    gpioa.odr.modify(|_, w| { w.odr13().clear_bit() });
 }
 
 #[no_mangle]
@@ -171,23 +244,35 @@ pub extern "C" fn _start() -> ! {
         cortex_m::peripheral::NVIC::unmask(stm32f215::Interrupt::USART1);
     }
 
+    // Configure SW_SHOOT signal on pin PA13.
+    gpioa.ospeedr.modify(|_, w| { w.ospeedr13().very_high_speed() });
+    gpioa.moder.modify(|_, w| { w.moder13().output() });
+
+    // Give some time for the FT232 to boot-up.
+    set_led_green(&peripherals, true);
+    delay_ms(500);
+
     // Configure PWM using TIM1.
     // PWM output on PA8. Alternate Function 1.
     peripherals.RCC.apb2enr.modify(|_, w| { w.tim1en().set_bit() });
     let tim1 = &peripherals.TIM1;
     tim1.cr1.write(|w| { w.cen().set_bit() });
-    tim1.arr.write(|w| { w.arr().bits(100) });
-    tim1.ccr1.write(|w| { w.ccr().bits(50) });
+    set_pwm_parameters(&peripherals, 100, 5).unwrap();
     tim1.ccmr1_output().write(|w| { w.oc1m().pwm_mode1() });
     tim1.ccer.write(|w| { w.cc1e().set_bit() });
-    tim1.bdtr.write(|w| { w.moe().set_bit() });
     gpioa.ospeedr.modify(|_, w| { w.ospeedr8().very_high_speed() });
     gpioa.afrh.modify(|_, w| { w.afrh8().af1() });
     gpioa.moder.modify(|_, w| { w.moder8().alternate() });
 
-    // Give some time for the FT232 to boot-up.
-    delay_ms(500);
-    set_led_green(&peripherals, true);
+    // Configure ADC.
+    // Input is PA0.
+    peripherals.RCC.apb2enr.modify(|_, w| { w.adc1en().set_bit() });
+    gpioa.moder.modify(|_, w| { w.moder0().analog() });
+    let adc1 = &peripherals.ADC1;
+    adc1.cr2.write(|w| { w.cont().set_bit().adon().set_bit() });
+    adc1.cr2.modify(|_, w| { w.swstart().set_bit() });  // Start the conversion
+    // I don't understand why the following is unsafe...
+    adc1.smpr2.write(|w| { unsafe { w.smp0().bits(7) } });
 
     loop
     {
@@ -196,9 +281,29 @@ pub extern "C" fn _start() -> ! {
             0x01 => {
                 let value = usart1_rx();
                 assert!(value <= 1);
-                set_15v_regulator(&peripherals, value != 0);
+                set_high_voltage_generator(&peripherals, value != 0);
                 usart1_tx(&peripherals, command_byte);
-            }
+            },
+            0x02 => {
+                let result: u16 = adc1.dr.read().data().bits();
+                usart1_tx_u16(&peripherals, result);
+            },
+            0x03 => {
+                let period: u16 = usart1_rx_u16();
+                let width: u16 = usart1_rx_u16();
+                usart1_tx(
+                    &peripherals,
+                    match set_pwm_parameters(&peripherals, period, width) {
+                        Ok(_) => command_byte,
+                        Err(_) => !command_byte
+                    }
+                );
+            },
+            0x04 => {
+                let duration = usart1_rx_u16();
+                software_shoot(&peripherals, duration);
+                usart1_tx(&peripherals, command_byte);
+            },
             _ => {
                 // Unknown command. Panic!
                 panic!();
