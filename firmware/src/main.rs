@@ -88,7 +88,8 @@ fn set_15v_regulator(peripherals: &stm32f215::Peripherals, state: bool) {
 #[inline(never)]
 fn delay_ms(duration: u32) {
     // Estimated duration for each loop: 7 clock cycles.
-    let count: u32 = (duration * 16000) / 7;
+    assert!(duration <= 0xffffffff / 64000);
+    let count: u32 = (duration * 64000) / 7;
     for _ in 0..count {
         cortex_m::asm::nop();
     }
@@ -189,6 +190,36 @@ fn software_shoot(peripherals: &stm32f215::Peripherals, duration: u16){
     gpioa.odr.modify(|_, w| { w.odr13().clear_bit() });
 }
 
+/// Configure internal Flash memory interface.
+/// This changes the Flash latency to be compatible with PLL settings.
+fn setup_flash(peripherals: &stm32f215::Peripherals){
+    unsafe {
+        peripherals.FLASH.acr.modify(|_, w| { w.latency().bits(2) });
+    }
+}
+
+/// Configure PLL
+fn setup_pll(peripherals: &stm32f215::Peripherals){
+    let rcc = &peripherals.RCC;
+    // Disable PLL
+    rcc.cr.modify(|_, w| { w.pllon().clear_bit() });
+    // HSI = 16 MHz
+    // F = ((HSI (N / M) / P
+    // Constraints to be respected:
+    // 50 <= N <= 432
+    // 2 <= M <= 63
+    // Here the target frequency is 64 MHz
+    unsafe {
+        rcc.pllcfgr.modify(|_, w|
+            { w.plln().bits(64).pllm().bits(8).pllp().div2() });
+    }
+    // Enable PLL and wait it to be locked.
+    rcc.cr.modify(|_, w| { w.pllon().set_bit() });
+    while !rcc.cr.read().pllrdy().bit() {}
+    // Switch to PLL clock
+    rcc.cfgr.modify(|_, w| { w.sw().pll() });
+}
+
 #[no_mangle]
 pub extern "C" fn _start() -> ! {
     // Get .bss segment position for .bss initialization performed in _start.
@@ -205,6 +236,8 @@ pub extern "C" fn _start() -> ! {
     }
 
     let peripherals = stm32f215::Peripherals::take().unwrap();
+    setup_flash(&peripherals);
+    setup_pll(&peripherals);
 
     peripherals.RCC.apb2enr.write(|w| { w.usart1en().set_bit() });
     // USART1 uses PA9 for TX and PA10 for RX.
@@ -212,8 +245,8 @@ pub extern "C" fn _start() -> ! {
     // Enable clock for PORT A, PORT B and PORT C peripherals.
     peripherals.RCC.ahb1enr.write(
         |w| { w.gpioaen().set_bit().gpioben().set_bit().gpiocen().set_bit() } );
-    peripherals.GPIOC.moder.write(
-        |w| { w.moder13().output().moder14().output() });
+    peripherals.GPIOC.moder.modify(
+        |_, w| { w.moder13().output().moder14().output() });
     set_15v_regulator(&peripherals, false);
     peripherals.GPIOB.moder.write(|w| { w.moder11().output() });
 
@@ -223,11 +256,11 @@ pub extern "C" fn _start() -> ! {
         |w| { w.ue().set_bit().te().set_bit().re().set_bit() });
     peripherals.USART1.cr2.write(|w|{ w.stop().bits(2) });
     // Baudrate is Fck/(8*(2-OVER8)*DIV)
-    // Fck = 16 MHz (High Speed Internal oscillator)
+    // Fck = 64 MHz
     // OVER8 = 0
     // DIV = BRR / 16
     // Here we set 9600 bps
-    let brr_value = 1666;
+    let brr_value = 6666;
     peripherals.USART1.brr.write(
         |w| { w.div_mantissa().bits(brr_value >> 4)
         .div_fraction().bits((brr_value & 0x0f) as u8) });
