@@ -312,8 +312,6 @@ Wire Wire Line
 	900  1300 900  1200
 Wire Wire Line
 	1000 1100 1000 1300
-Wire Wire Line
-	1700 3400 1400 3400
 Text Notes 4000 4450 0    50   ~ 0
 Bridge to adapt voltage to ADC input range.\nAlso acts a bleeding resistors for safety.
 Text HLabel 4950 3300 0    50   Output ~ 0
@@ -670,4 +668,46 @@ Wire Wire Line
 	10000 3200 10000 2600
 Wire Wire Line
 	7450 4200 8300 4200
+$Comp
+L Device:R_Small R?
+U 1 1 5DCDDCD3
+P 1550 3600
+AR Path="/5DCDDCD3" Ref="R?"  Part="1" 
+AR Path="/5D9F87D8/5DCDDCD3" Ref="R11"  Part="1" 
+F 0 "R11" H 1609 3646 50  0000 L CNN
+F 1 "10M" H 1609 3555 50  0000 L CNN
+F 2 "Resistor_SMD:R_0603_1608Metric" H 1550 3600 50  0001 C CNN
+F 3 "~" H 1550 3600 50  0001 C CNN
+F 4 "Multicomp" H -3550 500 50  0001 C CNN "Manufacturer"
+F 5 "MCWR06W1005FTL" H -3550 500 50  0001 C CNN "ManufacturerRef"
+F 6 "0.0046" H -3550 500 50  0001 C CNN "Price"
+F 7 "Farnell" H -3550 500 50  0001 C CNN "Vendor"
+F 8 "2447232" H -3550 500 50  0001 C CNN "VendorRef"
+	1    1550 3600
+	1    0    0    -1  
+$EndComp
+$Comp
+L power:GND #PWR?
+U 1 1 5DCDDD42
+P 1550 3800
+AR Path="/5DCDDD42" Ref="#PWR?"  Part="1" 
+AR Path="/5D9F87D8/5DCDDD42" Ref="#PWR0121"  Part="1" 
+F 0 "#PWR0121" H 1550 3550 50  0001 C CNN
+F 1 "GND" H 1555 3627 50  0000 C CNN
+F 2 "" H 1550 3800 50  0001 C CNN
+F 3 "" H 1550 3800 50  0001 C CNN
+	1    1550 3800
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	1550 3800 1550 3700
+Wire Wire Line
+	1400 3400 1550 3400
+Wire Wire Line
+	1550 3500 1550 3400
+Connection ~ 1550 3400
+Wire Wire Line
+	1550 3400 1700 3400
+Text Notes 750  4450 0    50   ~ 0
+If the gate if floating when not driven by the MCU\n(for example when reprogramming the device), it\nmay charge overtime...\nA high impedance pull-down may help.
 $EndSCHEMATC
