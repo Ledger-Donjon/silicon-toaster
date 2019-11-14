@@ -5,6 +5,7 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 import sys
 import serial
+import math
 
 
 class SiliconToaster:
@@ -70,9 +71,10 @@ class VoltageViewer(QWidget):
         self.setMinimumHeight(200)
         self.setMinimumWidth(200)
         self.data = []
-        self.hist_size = 100
+        self.hist_size = 400
         self.vmax = 1500
         self.vsafe = 1000
+        self.avg_samples = self.hist_size
 
     def paintEvent(self, event):
         """ Draw the widget. """
@@ -106,9 +108,17 @@ class VoltageViewer(QWidget):
             y1 = self.w2sy(v1)
             painter.drawLine(QLineF(x0, y0, x1, y1))
 
+        # Calculate average and standard deviation
         if len(self.data):
+            samples = self.data[-self.avg_samples:]
+            avg = sum(samples) / len(samples)
+            std_dev = 0
+            for value in self.data:
+                std_dev += (value - avg) ** 2
+            std_dev = math.sqrt(std_dev / len(samples))
+
             text_rect = self.rect()
-            text = f"{self.data[-1]:.0f} V"
+            text = f"{self.data[-1]:.0f} V\n{avg:.0f} V\n{std_dev:.3f}"
             font = painter.font()
             font.setPixelSize(20)
             painter.setFont(font)
@@ -185,7 +195,7 @@ class Window(QWidget):
         self.silicon_toaster = SiliconToaster('/dev/ttyUSB0')
 
         timer = self.timer = QTimer()
-        timer.setInterval(100)
+        timer.setInterval(25)
         timer.timeout.connect(self.refresh_voltage)
         timer.start()
 
