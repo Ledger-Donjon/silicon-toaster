@@ -270,7 +270,7 @@ AR Path="/5D9F90EC" Ref="Q?"  Part="1"
 AR Path="/5D9F87D8/5D9F90EC" Ref="Q2"  Part="1" 
 F 0 "Q2" H 10091 4246 50  0000 L CNN
 F 1 "IKW40N120H3FKSA1" H 10091 4155 50  0000 L CNN
-F 2 "mykicadlibs:TO-247-3_Horizontal_TabUp_NoTabDrill" H 10100 4300 50  0001 C CNN
+F 2 "mykicadlibs:TO-247-3_Horizontal_TabDown_NoTabDrill" H 10100 4300 50  0001 C CNN
 F 3 "https://www.infineon.com/dgdl/Infineon-IKW40N120H3-DS-v02_01-EN.pdf?fileId=db3a304325305e6d012591d4832f7032" H 9900 4200 50  0001 C CNN
 F 4 "Infineon" H 9900 4200 50  0001 C CNN "Manufacturer"
 F 5 "IKW40N120H3FKSA1" H 9900 4200 50  0001 C CNN "ManufacturerRef"
