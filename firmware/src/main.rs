@@ -108,6 +108,11 @@ fn usart1_rx() -> u8 {
     }
 }
 
+/// Return true if USART1 has data.
+fn usart1_has_data() -> bool {
+    unsafe { !USART1_QUEUE.is_empty() }
+}
+
 /// Receive a 16-bits unsigned int from USART1. Blocks until all data is
 /// available.
 fn usart1_rx_u16() -> u16 {
@@ -152,9 +157,6 @@ fn set_high_voltage_generator(peripherals: &stm32f215::Peripherals,
         peripherals.GPIOA.moder.modify(|_, w| { w.moder8().output() });
         peripherals.TIM1.bdtr.write(|w| { w.moe().clear_bit() });
     }
-    set_15v_regulator(&peripherals, state);
-    set_led_red(&peripherals, state);
-    set_led_green(&peripherals, !state);
 }
 
 /// Configure PWM parameters for high voltage generation. If the parameters are
@@ -247,7 +249,7 @@ pub extern "C" fn _start() -> ! {
         |w| { w.gpioaen().set_bit().gpioben().set_bit().gpiocen().set_bit() } );
     peripherals.GPIOC.moder.modify(
         |_, w| { w.moder13().output().moder14().output() });
-    set_15v_regulator(&peripherals, false);
+    set_15v_regulator(&peripherals, true);
     peripherals.GPIOB.moder.write(|w| { w.moder11().output() });
 
     // Configure UART1
@@ -282,7 +284,8 @@ pub extern "C" fn _start() -> ! {
     gpioa.moder.modify(|_, w| { w.moder13().output() });
 
     // Give some time for the FT232 to boot-up.
-    set_led_green(&peripherals, true);
+    set_led_green(&peripherals, false);
+    set_led_red(&peripherals, true);
     delay_ms(500);
 
     // Configure PWM using TIM1.
@@ -307,40 +310,50 @@ pub extern "C" fn _start() -> ! {
     // I don't understand why the following is unsafe...
     adc1.smpr2.write(|w| { unsafe { w.smp0().bits(7) } });
 
+    let mut high_voltage_enabled = false;
+    set_high_voltage_generator(&peripherals, high_voltage_enabled);
+
     loop
     {
-        let command_byte = usart1_rx();
-        match command_byte {
-            0x01 => {
-                let value = usart1_rx();
-                assert!(value <= 1);
-                set_high_voltage_generator(&peripherals, value != 0);
-                usart1_tx(&peripherals, command_byte);
-            },
-            0x02 => {
-                let result: u16 = adc1.dr.read().data().bits();
-                usart1_tx_u16(&peripherals, result);
-            },
-            0x03 => {
-                let period: u16 = usart1_rx_u16();
-                let width: u16 = usart1_rx_u16();
-                usart1_tx(
-                    &peripherals,
-                    match set_pwm_parameters(&peripherals, period, width) {
-                        Ok(_) => command_byte,
-                        Err(_) => !command_byte
-                    }
-                );
-            },
-            0x04 => {
-                let duration = usart1_rx_u16();
-                software_shoot(&peripherals, duration);
-                usart1_tx(&peripherals, command_byte);
-            },
-            _ => {
-                // Unknown command. Panic!
-                panic!();
+        let adc_result: u16 = adc1.dr.read().data().bits();
+        if usart1_has_data()
+        {
+            let command_byte = usart1_rx();
+            match command_byte {
+                0x01 => {
+                    let value = usart1_rx();
+                    assert!(value <= 1);
+                    high_voltage_enabled = value != 0;
+                    set_high_voltage_generator(&peripherals, high_voltage_enabled);
+                    usart1_tx(&peripherals, command_byte);
+                },
+                0x02 => {
+                    usart1_tx_u16(&peripherals, adc_result);
+                },
+                0x03 => {
+                    let period: u16 = usart1_rx_u16();
+                    let width: u16 = usart1_rx_u16();
+                    usart1_tx(
+                        &peripherals,
+                        match set_pwm_parameters(&peripherals, period, width) {
+                            Ok(_) => command_byte,
+                            Err(_) => !command_byte
+                        }
+                    );
+                },
+                0x04 => {
+                    let duration = usart1_rx_u16();
+                    software_shoot(&peripherals, duration);
+                    usart1_tx(&peripherals, command_byte);
+                },
+                _ => {
+                    // Unknown command. Panic!
+                    panic!();
+                }
             }
         }
+        let danger: bool = (adc_result >= 67) || high_voltage_enabled;
+        set_led_red(&peripherals, danger);
+        set_led_green(&peripherals, !danger);
     }
 }
