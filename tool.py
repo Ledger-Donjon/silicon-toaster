@@ -93,7 +93,7 @@ class VoltageViewer(QWidget):
 
 
 class Window(QWidget):
-    def __init__(self):
+    def __init__(self, dev):
         super().__init__()
         vbox = QVBoxLayout()
         vbox.setContentsMargins(4, 4, 4, 4)
@@ -135,7 +135,7 @@ class Window(QWidget):
         w = self.viewer = VoltageViewer()
         vbox.addWidget(w)
 
-        self.silicon_toaster = SiliconToaster('/dev/ttyUSB0')
+        self.silicon_toaster = SiliconToaster(dev)
         self.silicon_toaster.off()
         self.silicon_toaster.set_pwm_settings(800, 5)
 
@@ -174,6 +174,10 @@ class Window(QWidget):
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    window = Window()
+    if len(sys.argv) < 2:
+        dev = '/dev/ttyUSB0'
+    else:
+        dev = sys.argv[1]
+    window = Window(dev)
     window.show()
     sys.exit(app.exec_())
