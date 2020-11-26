@@ -22,7 +22,7 @@ SECTIONS
 
   .rodata :
   {
-
+    *(.rodata*)
   } > FLASH
 
   /* Make .bss aligned to 32 bits words, with a size multiple of 4 bytes to
