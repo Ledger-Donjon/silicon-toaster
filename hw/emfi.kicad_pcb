@@ -359,7 +359,7 @@
       (net 1 "GND") (tstamp eed9d712-571a-4fa2-b617-7f564bf5e0ac))
     (pad "6" smd circle locked (at -5.835 5.835 180) (size 3 3) (layers "F.Cu" "F.Paste" "F.Mask")
       (net 83 "Net-(C18-Pad2)") (tstamp 5bc20856-921d-4ca5-8e51-26fc99168376))
-    (model "/home/ohe/projects/mykicadlibs/3d/coilcraft_scs.wrl"
+    (model "models/coilcraft_scs.wrl"
       (offset (xyz 0 0 0))
       (scale (xyz 1 1 1))
       (rotate (xyz 0 0 -90))
@@ -2618,7 +2618,7 @@
       (net 1 "GND") (tstamp d5a6653e-3f63-4910-afbc-8ebf149f0d3d))
     (pad "2" smd rect locked (at 3.2 -4.28) (size 6.4 1.44) (layers "F.Cu" "F.Paste" "F.Mask")
       (net 1 "GND") (tstamp dac75ca8-9fd9-4f25-9f22-82af6f3fdad2))
-    (model "/home/ohe/projects/mykicadlibs/3d-third-party/SMA-J-P-H-ST-EM3.stp"
+    (model "models/third-party/SMA-J-P-H-ST-EM3.stp"
       (offset (xyz 1.5 0 0))
       (scale (xyz 1 1 1))
       (rotate (xyz -90 0 0))
@@ -2698,7 +2698,7 @@
       (net 1 "GND") (tstamp 3ff9be75-0570-418f-a5fc-6ed51d4eae5c))
     (pad "6" thru_hole oval locked (at -3.875 1.95 270) (size 1.15 1.8) (drill oval 0.55 1.2) (layers *.Cu *.Mask)
       (net 1 "GND") (tstamp 9cf43076-18a1-462b-9c97-88acb00965fa))
-    (model "/home/ohe/projects/mykicadlibs/3d-third-party/wurth-629105150521.stp"
+    (model "models/third-party/wurth-629105150521.stp"
       (offset (xyz 0 1 1))
       (scale (xyz 1 1 1))
       (rotate (xyz 0 0 0))
@@ -2753,7 +2753,7 @@
       (net 8 "/analog/ANTENNA_B") (tstamp 59e03393-006d-471e-9536-bbbd75e54503))
     (pad "2" smd rect locked (at 3.2 4.28 180) (size 6.4 1.44) (layers "F.Cu" "F.Paste" "F.Mask")
       (net 8 "/analog/ANTENNA_B") (tstamp 8e73e860-7df5-47ee-9d85-a51cffff4073))
-    (model "/home/ohe/projects/mykicadlibs/3d-third-party/SMA-J-P-H-ST-EM3.stp"
+    (model "models/third-party/SMA-J-P-H-ST-EM3.stp"
       (offset (xyz 1.5 0 0))
       (scale (xyz 1 1 1))
       (rotate (xyz -90 0 0))
@@ -2848,7 +2848,7 @@
       (net 4 "/analog/ANTENNA_A") (tstamp d633a4de-1388-46e7-ac55-24bd558a0816))
     (pad "2" smd rect locked (at 3.2 4.28 180) (size 6.4 1.44) (layers "F.Cu" "F.Paste" "F.Mask")
       (net 4 "/analog/ANTENNA_A") (tstamp e0441cbd-426e-47d4-952b-8c03883e1f7a))
-    (model "/home/ohe/projects/mykicadlibs/3d-third-party/SMA-J-P-H-ST-EM3.stp"
+    (model "models/third-party/SMA-J-P-H-ST-EM3.stp"
       (offset (xyz 1.5 0 0))
       (scale (xyz 1 1 1))
       (rotate (xyz -90 0 0))
@@ -4120,7 +4120,7 @@
       (net 8 "/analog/ANTENNA_B") (tstamp 572f678c-7489-4a0c-81c3-6f024e0707be))
     (pad "3" thru_hole oval locked (at 10.9 0 270) (size 2.5 4.5) (drill 1.5) (layers *.Cu *.Mask)
       (net 1 "GND") (tstamp 20a40fd4-4825-456a-b45d-96e8fe1622a5))
-    (model "/home/ohe/projects/mykicadlibs/3d/to-247-3-bend.wrl"
+    (model "models/to-247-3-bend.wrl"
       (offset (xyz 0 0 0))
       (scale (xyz 1 1 1))
       (rotate (xyz 0 0 90))
