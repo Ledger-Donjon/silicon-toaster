@@ -21,7 +21,7 @@ class VoltageViewer(QWidget):
 
     def paintEvent(self, event):
         """ Draw the widget. """
-        painter = self.painter = QPainter()
+        painter = QPainter()
         painter.begin(self)
         painter.setRenderHint(QPainter.Antialiasing)
         painter.fillRect(self.rect(), QBrush(Qt.black))
@@ -31,7 +31,7 @@ class VoltageViewer(QWidget):
 
         y0 = self.w2sy(self.vsafe)
         y1 = self.w2sy(self.vmax)
-        painter.fillRect(0, y0, width, y1-y0, QBrush(QColor(70, 20, 0), Qt.BDiagPattern))
+        painter.fillRect(0, int(y0), width, int(y1-y0), QBrush(QColor(70, 20, 0), Qt.BDiagPattern))
         
         for i in range(0, self.vmax, 100):
             if i < self.vsafe:
@@ -110,11 +110,13 @@ class Window(QWidget):
         w.clicked.connect(self.off)
 
         w = self.period_edit = QLineEdit('800')
+        w.setToolTip("PWM: Period")
         w.setMaximumWidth(50)
         w.setValidator(QIntValidator(1, 50000))
         hbox.addWidget(w)
 
         w = self.width_edit = QLineEdit('5')
+        w.setToolTip("PWM: Width")
         w.setMaximumWidth(50)
         w.setValidator(QIntValidator(1, 100))
         hbox.addWidget(w)
@@ -124,6 +126,7 @@ class Window(QWidget):
         w.clicked.connect(self.set_pwm_settings)
         
         w = self.shoot_edit = QLineEdit('10')
+        w.setToolTip("Shoot duration")
         w.setMaximumWidth(50)
         w.setValidator(QIntValidator(1, 0x10000))
         hbox.addWidget(w)
@@ -135,9 +138,12 @@ class Window(QWidget):
         w = self.viewer = VoltageViewer()
         vbox.addWidget(w)
 
-        self.silicon_toaster = SiliconToaster(dev)
-        self.silicon_toaster.off()
-        self.silicon_toaster.set_pwm_settings(800, 5)
+        if isinstance(dev, SiliconToaster):
+            self.silicon_toaster = dev
+        else:
+            self.silicon_toaster = SiliconToaster(dev)
+            self.silicon_toaster.off()
+            self.silicon_toaster.set_pwm_settings(800, 5)
 
         timer = self.timer = QTimer()
         timer.setInterval(25)
@@ -159,14 +165,16 @@ class Window(QWidget):
 
     def set_pwm_settings(self):
         """ Reconfigure device PWM settings from UX input. """
-        period = int(self.period_edit.text())
-        width = int(self.width_edit.text())
-        self.silicon_toaster.set_pwm_settings(period, width)
+        period, ok1 = QLocale().toInt(self.period_edit.text())
+        width, ok2 = QLocale().toInt(self.width_edit.text())
+        if ok1 and ok2:
+            self.silicon_toaster.set_pwm_settings(period, width)
 
     def shoot(self):
         """ Software shoot with duration from UX. """
-        duration = int(self.shoot_edit.text())
-        self.silicon_toaster.software_shoot(duration)
+        duration, ok = QLocale().toInt(self.shoot_edit.text())
+        if ok:
+            self.silicon_toaster.software_shoot(duration)
 
     def closeEvent(self, event):
         self.silicon_toaster.off()

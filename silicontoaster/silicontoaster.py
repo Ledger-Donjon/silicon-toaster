@@ -42,7 +42,7 @@ class SiliconToaster:
         """
         self.ser.write(b'\x01\x01')
         assert self.ser.read(1) == b'\x01'
-    
+
     def off(self):
         """
         Turn off high-voltage generation.
