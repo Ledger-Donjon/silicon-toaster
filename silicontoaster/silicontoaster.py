@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+from typing import Optional
 import serial
 import serial.tools.list_ports
 
@@ -31,6 +32,7 @@ class SiliconToaster:
             7.66927146e-01,
             -1.12729564e+00
         ]
+        self._software_limit = None
 
     def read_voltage_raw(self):
         """
@@ -41,7 +43,7 @@ class SiliconToaster:
         self.ser.write(b'\x02')
         return int.from_bytes(self.ser.read(2), 'big')
 
-    def read_voltage(self):
+    def read_voltage(self) -> float:
         """
         Retrieve voltage measurement from the device.
         :return: Voltage measurement.
@@ -51,6 +53,10 @@ class SiliconToaster:
         v = 0
         for i, c in enumerate(self.calibration):
             v += c * raw ** (len(self.calibration) - i - 1)
+        # Checks the software limitation
+        if self._software_limit is not None and v > self._software_limit:
+            self.off()
+            raise RuntimeWarning(f"VOLTAGE IS TOO HIGH {v}V > {self._software_limit}V. Turning off.")
         return v
 
     def on(self):
@@ -95,3 +101,10 @@ class SiliconToaster:
         self.ser.write(command)
         assert self.ser.read(1) == b'\x04'
 
+    @property
+    def software_limit(self) -> Optional[float]:
+        return self._software_limit
+
+    @software_limit.setter
+    def software_limit(self, value: Optional[float]):
+        self._software_limit = value
