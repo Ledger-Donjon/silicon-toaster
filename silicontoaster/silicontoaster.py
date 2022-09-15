@@ -1,11 +1,28 @@
 #!/usr/bin/python3
 
 import serial
-import math
+import serial.tools.list_ports
 
 
 class SiliconToaster:
-    def __init__(self, dev):
+    def __init__(self, dev = None, sn = None):
+        if dev is not None and sn is not None:
+            raise ValueError("dev and sn cannot be set together")
+
+        if dev is None:
+            # Try to find automatically the device
+            possible_ports = []
+            for port in serial.tools.list_ports.comports():
+                # USB description string can be 'Scaffold', with uppercase 'S'.
+                if (port.product is not None) and ((sn is None) or (port.serial_number == sn)):
+                    possible_ports.append(port)
+            if len(possible_ports) > 1:
+                raise RuntimeError("Multiple Silicon Toaster devices found! I don't know which one to use.")
+            elif len(possible_ports) == 1:
+                dev = possible_ports[0].device
+            else:
+                raise RuntimeError("No Silicon Toaster device found")
+
         self.ser = serial.Serial(dev, 9600)
         self.calibration = [
             -4.02294398e-11,
