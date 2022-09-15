@@ -108,3 +108,6 @@ class SiliconToaster:
     @software_limit.setter
     def software_limit(self, value: Optional[float]):
         self._software_limit = value
+
+    def __del__(self):
+        self.off()
