@@ -14,9 +14,9 @@ toaster.on()
 
 avg_count = 100
 
-log = quicklog.Log(f"calibration.log")
+log = quicklog.Log(f"calibration_voltage.log")
 already_done = []
-for record in quicklog.read_log(f"calibration.log"):
+for record in quicklog.read_log(f"calibration_voltage.log"):
     already_done.append((float(record["width"]), float(record["period"])))
 
 for period in list(range(100, 1600, 50))[::-1]:

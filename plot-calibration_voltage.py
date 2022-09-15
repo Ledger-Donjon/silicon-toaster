@@ -8,7 +8,7 @@ x = []
 y = []
 z = []
 
-for record in quicklog.read_log(f"calibration.log"):
+for record in quicklog.read_log(f"calibration_voltage.log"):
     x.append(float(record["period"]))
     y.append(float(record["width"]))
     z.append(float(record["voltage"]))
