@@ -115,5 +115,10 @@ class SiliconToaster:
     def software_limit(self, value: Optional[float]):
         self._software_limit = value
 
+    def get_time(self) -> float:
+        self.ser.write(b"\x05")
+        time = int.from_bytes(self.ser.read(8), "big") / 0x800000
+        return time
+
     def __del__(self):
         self.off()

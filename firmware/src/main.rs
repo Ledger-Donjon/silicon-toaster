@@ -427,6 +427,9 @@ pub extern "C" fn _start() -> ! {
     set_led_red(&peripherals, true);
     delay_ms(500);
 
+    // System timer to track time between to controls.
+    let mut sys_timer = SystemTimer::new();
+
     // Keep last applied PWM parameters
     let mut current_period: u16 = 100;
     let mut current_width: u16 = 5;
@@ -485,6 +488,9 @@ pub extern "C" fn _start() -> ! {
                     let duration = usart1_rx_u16();
                     software_shoot(&peripherals, duration);
                     usart1_tx(&peripherals, command_byte);
+                }
+                0x05 => {
+                    usart1_tx_u64(&peripherals, sys_timer.get_ticks());
                 }
                 0x08 => {
                     usart1_tx_u16(&peripherals, current_period);
