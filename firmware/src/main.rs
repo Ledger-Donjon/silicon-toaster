@@ -67,12 +67,16 @@ struct ADCControl {
 
 impl ADCControl {
     fn needs_control(&self, time: u64, adc_value: u16) -> bool {
-        // The control is enabled
-        self.enabled &&
+        // The control must be enabled
+        if !self.enabled {
+            return false;
+        }
         // The last control has been executed long time enough
-            (time.abs_diff(self.last_control) > self.control_time) &&
-            // The current ADC value is far enough from desired value
-            self.destination.abs_diff(adc_value) > self.hysteresis
+        if time.abs_diff(self.last_control) < self.control_time {
+            return false;
+        }
+        // The current ADC value is far enough from desired value
+        return self.destination.abs_diff(adc_value) > self.hysteresis;
     }
 
     pub fn adjust(&mut self, time: u64, adc_value: u16) -> i16 {
