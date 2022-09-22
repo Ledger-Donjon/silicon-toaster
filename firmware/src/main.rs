@@ -56,6 +56,39 @@ impl SystemTimer {
     }
 }
 
+struct ADCControl {
+    pub enabled: bool,
+    // Time interval between two controls (in ticks: 1 second corresponds to 0x80_0000 ticks).
+    pub control_time: u64,
+    pub destination: u16,
+    pub hysteresis: u16,
+    pub last_control: u64,
+}
+
+impl ADCControl {
+    fn needs_control(&self, time: u64, adc_value: u16) -> bool {
+        // The control is enabled
+        self.enabled &&
+        // The last control has been executed long time enough
+            (time.abs_diff(self.last_control) > self.control_time) &&
+            // The current ADC value is far enough from desired value
+            self.destination.abs_diff(adc_value) > self.hysteresis
+    }
+
+    pub fn adjust(&mut self, time: u64, adc_value: u16) -> i16 {
+        if !self.needs_control(time, adc_value) {
+            0;
+        }
+        // Update the last control timestamping
+        self.last_control = time;
+        if adc_value > self.destination {
+            -1
+        } else {
+            1
+        }
+    }
+}
+
 static mut USART1_QUEUE: heapless::spsc::Queue<u8, heapless::consts::U128> =
     heapless::spsc::Queue(heapless::i::Queue::new());
 
