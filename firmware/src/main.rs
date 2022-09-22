@@ -203,9 +203,25 @@ fn usart1_has_data() -> bool {
 /// Receive a 16-bits unsigned int from USART1. Blocks until all data is
 /// available.
 fn usart1_rx_u16() -> u16 {
-    let h = usart1_rx();
-    let l = usart1_rx();
-    ((h as u16) << 8) + (l as u16)
+    let h = (usart1_rx() as u16) << 8;
+    let l = usart1_rx() as u16;
+    h + l
+}
+
+/// Receive a 32-bits unsigned int from USART1. Blocks until all data is
+/// available.
+fn usart1_rx_u32() -> u32 {
+    let h = (usart1_rx_u16() as u32) << 16;
+    let l = usart1_rx_u16() as u32;
+    h + l
+}
+
+/// Receive a 64-bits unsigned int from USART1. Blocks until all data is
+/// available.
+fn usart1_rx_u64() -> u64 {
+    let h = (usart1_rx_u32() as u64) << 32;
+    let l = usart1_rx_u32() as u64;
+    h + l
 }
 
 /// Transmit a byte over USART1.
@@ -223,6 +239,22 @@ fn usart1_tx(peripherals: &stm32f215::Peripherals, value: u8) {
 fn usart1_tx_u16(peripherals: &stm32f215::Peripherals, value: u16) {
     usart1_tx(peripherals, (value >> 8) as u8);
     usart1_tx(peripherals, (value & 0xff) as u8);
+}
+
+/// Transmit a 32-bits word over USART1.
+/// `peripherals` - This method needs to borrow the peripherals.
+/// `value` - Byte to be transmitted.
+fn usart1_tx_u32(peripherals: &stm32f215::Peripherals, value: u32) {
+    usart1_tx_u16(peripherals, ((value >> 16) & 0xffff) as u16);
+    usart1_tx_u16(peripherals, ((value >> 0) & 0xffff) as u16);
+}
+
+/// Transmit a 64-bits word over USART1.
+/// `peripherals` - This method needs to borrow the peripherals.
+/// `value` - Byte to be transmitted.
+fn usart1_tx_u64(peripherals: &stm32f215::Peripherals, value: u64) {
+    usart1_tx_u32(peripherals, ((value >> 32) & 0xffffffff) as u32);
+    usart1_tx_u32(peripherals, ((value >> 0) & 0xffffffff) as u32);
 }
 
 /// Enable or disable very-high voltage generation by enabling or disabling the
