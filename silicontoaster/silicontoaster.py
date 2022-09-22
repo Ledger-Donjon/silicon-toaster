@@ -3,6 +3,9 @@
 from typing import Optional
 import serial
 import serial.tools.list_ports
+import os
+import numpy
+from scipy.interpolate import LinearNDInterpolator
 
 
 class SiliconToaster:
@@ -33,6 +36,7 @@ class SiliconToaster:
             -1.12729564e00,
         ]
         self._software_limit = None
+        self.get_voltage_mapping()
 
     def read_voltage_raw(self):
         """
@@ -115,6 +119,22 @@ class SiliconToaster:
     def software_limit(self, value: Optional[float]):
         self._software_limit = value
 
+    def get_voltage_mapping(self):
+        file_dir = os.path.dirname(os.path.realpath(__file__))
+        try:
+            f = open(os.path.join(file_dir, "calibration_voltage.log"))
+        except OSError:
+            file_dir = os.path.dirname(file_dir)
+            f = open(os.path.join(file_dir, "calibration_voltage.log"))
+        periods = []
+        widths = []
+        voltages = []
+        for line in f.readlines():
+            record = eval(line)
+            periods.append(int(record["period"]))
+            widths.append(int(record["width"]))
+            voltages.append(float(record["voltage"]))
+        self.voltage_mapping = LinearNDInterpolator(numpy.dstack((periods, widths))[0], voltages)
 
     def get_adc_control_param(self) -> tuple[bool, int, int, int, int]:
         self.ser.write(b"\x07")

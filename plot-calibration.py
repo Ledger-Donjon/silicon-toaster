@@ -7,7 +7,7 @@ import numpy as np
 x = []
 y = []
 
-for record in quicklog.read_log('800.log'):
+for record in quicklog.read_log('calibration-800.log'):
     x.append(float(record['value']))
     y.append(float(record['voltage']))
 
