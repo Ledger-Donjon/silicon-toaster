@@ -433,6 +433,16 @@ pub extern "C" fn _start() -> ! {
     // Keep last applied PWM parameters
     let mut current_period: u16 = 100;
     let mut current_width: u16 = 5;
+
+    // ADC Control.
+    let mut adc_ctrl = ADCControl {
+        enabled: false,
+        control_time: 0x0080_0000, // ~1 second.
+        destination: 0,
+        hysteresis: 10,
+        last_control: sys_timer.get_ticks(),
+    };
+
     // Configure PWM using TIM1.
     // PWM output on PA8. Alternate Function 1.
     peripherals.RCC.apb2enr.modify(|_, w| w.tim1en().set_bit());
@@ -491,6 +501,20 @@ pub extern "C" fn _start() -> ! {
                 }
                 0x05 => {
                     usart1_tx_u64(&peripherals, sys_timer.get_ticks());
+                }
+                0x06 => {
+                    // Command to tune the ADC Control parameters.
+                    adc_ctrl.enabled = usart1_rx() != 0; // Enable or not the ADC control
+                    adc_ctrl.destination = usart1_rx_u16(); // Set the destination voltage (raw value)
+                    adc_ctrl.hysteresis = usart1_rx_u16(); // Set the hysteresis
+                    adc_ctrl.control_time = usart1_rx_u64(); // Set the time interval between two controls
+                }
+                0x07 => {
+                    usart1_tx(&peripherals, if adc_ctrl.enabled { 1 } else { 0 });
+                    usart1_tx_u16(&peripherals, adc_ctrl.destination);
+                    usart1_tx_u16(&peripherals, adc_ctrl.hysteresis);
+                    usart1_tx_u64(&peripherals, adc_ctrl.control_time);
+                    usart1_tx_u64(&peripherals, adc_ctrl.last_control);
                 }
                 0x08 => {
                     usart1_tx_u16(&peripherals, current_period);

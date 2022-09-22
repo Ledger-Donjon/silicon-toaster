@@ -115,6 +115,32 @@ class SiliconToaster:
     def software_limit(self, value: Optional[float]):
         self._software_limit = value
 
+
+    def get_adc_control_param(self) -> tuple[bool, int, int, int, int]:
+        self.ser.write(b"\x07")
+        adc_control_enabled = self.ser.read(1) != b"\x00"
+        adc_destination = int.from_bytes(self.ser.read(2), "big")
+        adc_hysteresis = int.from_bytes(self.ser.read(2), "big")
+        adc_control_time = int.from_bytes(self.ser.read(8), "big")
+        adc_last_control = int.from_bytes(self.ser.read(8), "big")
+        print(
+            "ADC Control Params:",
+            adc_control_enabled,
+            adc_destination,
+            adc_hysteresis,
+            adc_control_time,
+            adc_last_control,
+        )
+        return adc_control_enabled, adc_destination, adc_hysteresis, adc_control_time, adc_last_control
+
+    def set_adc_control_param(self, enabled: bool, destination: int, hysteresis: int, control_time: int):
+        command = bytearray(b"\x06")
+        command += b"\x01" if enabled else b"\x00"
+        command += destination.to_bytes(2, "big")
+        command += hysteresis.to_bytes(2, "big")
+        command += control_time.to_bytes(8, "big")
+        self.ser.write(command)
+
     def get_time(self) -> float:
         self.ser.write(b"\x05")
         time = int.from_bytes(self.ser.read(8), "big") / 0x800000
