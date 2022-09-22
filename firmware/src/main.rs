@@ -469,7 +469,18 @@ pub extern "C" fn _start() -> ! {
     set_high_voltage_generator(&peripherals, high_voltage_enabled);
 
     loop {
+        // ADC Control. Get current value and timestamp.
         let adc_result: u16 = adc1.dr.read().data().bits();
+        let now = sys_timer.get_ticks();
+        // Check for adjustment to perform according to timing and current ADC value.
+        let adjust_value = adc_ctrl.adjust(now, adc_result);
+        if adjust_value != 0 {
+            let new_width = current_width as i16 + adjust_value;
+            if new_width > 0 && (new_width as u16) < current_period && new_width < 30 {
+                current_width = new_width as u16;
+                set_pwm_parameters(&peripherals, current_period, current_width).unwrap();
+            }
+        }
         if usart1_has_data() {
             let command_byte = usart1_rx();
             match command_byte {
