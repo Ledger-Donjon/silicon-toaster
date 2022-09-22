@@ -90,6 +90,12 @@ class SiliconToaster:
         command += width.to_bytes(2, 'big')
         self.ser.write(command)
         assert self.ser.read(1) == b'\x03'
+    def get_pwm_settings(self) -> tuple[int, int]:
+        self.ser.write(b"\x08")
+        period = int.from_bytes(self.ser.read(2), "big")
+        width = int.from_bytes(self.ser.read(2), "big")
+        return period, width
+
 
     def software_shoot(self, duration: int):
         """

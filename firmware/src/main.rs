@@ -427,6 +427,9 @@ pub extern "C" fn _start() -> ! {
     set_led_red(&peripherals, true);
     delay_ms(500);
 
+    // Keep last applied PWM parameters
+    let mut current_period: u16 = 100;
+    let mut current_width: u16 = 5;
     // Configure PWM using TIM1.
     // PWM output on PA8. Alternate Function 1.
     peripherals.RCC.apb2enr.modify(|_, w| w.tim1en().set_bit());
@@ -468,11 +471,11 @@ pub extern "C" fn _start() -> ! {
                     usart1_tx_u16(&peripherals, adc_result);
                 }
                 0x03 => {
-                    let period: u16 = usart1_rx_u16();
-                    let width: u16 = usart1_rx_u16();
+                    current_period = usart1_rx_u16();
+                    current_width = usart1_rx_u16();
                     usart1_tx(
                         &peripherals,
-                        match set_pwm_parameters(&peripherals, period, width) {
+                        match set_pwm_parameters(&peripherals, current_period, current_width) {
                             Ok(_) => command_byte,
                             Err(_) => !command_byte,
                         },
@@ -482,6 +485,10 @@ pub extern "C" fn _start() -> ! {
                     let duration = usart1_rx_u16();
                     software_shoot(&peripherals, duration);
                     usart1_tx(&peripherals, command_byte);
+                }
+                0x08 => {
+                    usart1_tx_u16(&peripherals, current_period);
+                    usart1_tx_u16(&peripherals, current_width);
                 }
                 _ => {
                     // Unknown command. Panic!
