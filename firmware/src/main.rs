@@ -77,15 +77,11 @@ impl ADCControl {
 
     pub fn adjust(&mut self, time: u64, adc_value: u16) -> i16 {
         if !self.needs_control(time, adc_value) {
-            0;
+            return 0;
         }
         // Update the last control timestamping
         self.last_control = time;
-        if adc_value > self.destination {
-            -1
-        } else {
-            1
-        }
+        return if adc_value > self.destination { -1 } else { 1 };
     }
 }
 
