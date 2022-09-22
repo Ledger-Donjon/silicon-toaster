@@ -6,7 +6,7 @@ import serial.tools.list_ports
 
 
 class SiliconToaster:
-    def __init__(self, dev = None, sn = None):
+    def __init__(self, dev=None, sn=None):
         if dev is not None and sn is not None:
             raise ValueError("dev and sn cannot be set together")
 
@@ -30,7 +30,7 @@ class SiliconToaster:
             1.53492378e-07,
             -2.71166328e-04,
             7.66927146e-01,
-            -1.12729564e+00
+            -1.12729564e00,
         ]
         self._software_limit = None
 
@@ -40,8 +40,8 @@ class SiliconToaster:
         :return: ADC measurement.
         :rtype: int
         """
-        self.ser.write(b'\x02')
-        return int.from_bytes(self.ser.read(2), 'big')
+        self.ser.write(b"\x02")
+        return int.from_bytes(self.ser.read(2), "big")
 
     def read_voltage(self) -> float:
         """
@@ -63,15 +63,15 @@ class SiliconToaster:
         """
         Turn on high-voltage generation.
         """
-        self.ser.write(b'\x01\x01')
-        assert self.ser.read(1) == b'\x01'
+        self.ser.write(b"\x01\x01")
+        assert self.ser.read(1) == b"\x01"
 
     def off(self):
         """
         Turn off high-voltage generation.
         """
-        self.ser.write(b'\x01\x00')
-        assert self.ser.read(1) == b'\x01'
+        self.ser.write(b"\x01\x00")
+        assert self.ser.read(1) == b"\x01"
 
     def set_pwm_settings(self, period: int, width: int):
         """
@@ -82,30 +82,30 @@ class SiliconToaster:
             pulse width.
         """
         if period < 1:
-            raise ValueError('Invalid PWM period')
+            raise ValueError("Invalid PWM period")
         if (width < 0) or (width > period):
-            raise ValueError('Invalid PWM width')
-        command = bytearray(b'\x03')
-        command += period.to_bytes(2, 'big')
-        command += width.to_bytes(2, 'big')
+            raise ValueError("Invalid PWM width")
+        command = bytearray(b"\x03")
+        command += period.to_bytes(2, "big")
+        command += width.to_bytes(2, "big")
         self.ser.write(command)
-        assert self.ser.read(1) == b'\x03'
+        assert self.ser.read(1) == b"\x03"
+
     def get_pwm_settings(self) -> tuple[int, int]:
         self.ser.write(b"\x08")
         period = int.from_bytes(self.ser.read(2), "big")
         width = int.from_bytes(self.ser.read(2), "big")
         return period, width
 
-
     def software_shoot(self, duration: int):
         """
         Generate a pulse with the device to discharge de capacitors.
         """
         assert duration in range(0x10000)
-        command = bytearray(b'\x04')
-        command += duration.to_bytes(2, 'big')
+        command = bytearray(b"\x04")
+        command += duration.to_bytes(2, "big")
         self.ser.write(command)
-        assert self.ser.read(1) == b'\x04'
+        assert self.ser.read(1) == b"\x04"
 
     @property
     def software_limit(self) -> Optional[float]:

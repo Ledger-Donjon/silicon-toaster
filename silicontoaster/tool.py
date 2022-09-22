@@ -20,7 +20,7 @@ class VoltageViewer(QWidget):
         self.avg_samples = self.hist_size
 
     def paintEvent(self, event):
-        """ Draw the widget. """
+        """Draw the widget."""
         painter = QPainter()
         painter.begin(self)
         painter.setRenderHint(QPainter.Antialiasing)
@@ -31,8 +31,8 @@ class VoltageViewer(QWidget):
 
         y0 = self.w2sy(self.vsafe)
         y1 = self.w2sy(self.vmax)
-        painter.fillRect(0, int(y0), width, int(y1-y0), QBrush(QColor(70, 20, 0), Qt.BDiagPattern))
-        
+        painter.fillRect(0, int(y0), width, int(y1 - y0), QBrush(QColor(70, 20, 0), Qt.BDiagPattern))
+
         for i in range(0, self.vmax, 100):
             if i < self.vsafe:
                 painter.setPen(QPen(QColor(50, 50, 50)))
@@ -42,18 +42,18 @@ class VoltageViewer(QWidget):
             painter.drawLine(QLineF(0, y, width, y))
 
         painter.setPen(QPen(Qt.yellow))
-        for i in range(len(self.data)-1):
+        for i in range(len(self.data) - 1):
             v0 = self.data[i]
-            v1 = self.data[i+1]
+            v1 = self.data[i + 1]
             x0 = self.w2sx(i)
-            x1 = self.w2sx(i+1)
+            x1 = self.w2sx(i + 1)
             y0 = self.w2sy(v0)
             y1 = self.w2sy(v1)
             painter.drawLine(QLineF(x0, y0, x1, y1))
 
         # Calculate average and standard deviation
         if len(self.data):
-            samples = self.data[-self.avg_samples:]
+            samples = self.data[-self.avg_samples :]
             avg = sum(samples) / len(samples)
             std_dev = 0
             for value in self.data:
@@ -89,7 +89,7 @@ class VoltageViewer(QWidget):
         :param x: Abscissa in world.
         :return: Abscissa on screen.
         """
-        return (x / (self.hist_size-1)) * self.width()
+        return (x / (self.hist_size - 1)) * self.width()
 
 
 class Window(QWidget):
@@ -100,38 +100,38 @@ class Window(QWidget):
         self.setLayout(vbox)
         hbox = QHBoxLayout()
         vbox.addLayout(hbox)
-        
-        w = QPushButton('On')
+
+        w = QPushButton("On")
         hbox.addWidget(w)
         w.clicked.connect(self.on)
 
-        w = QPushButton('Off')
+        w = QPushButton("Off")
         hbox.addWidget(w)
         w.clicked.connect(self.off)
 
-        w = self.period_edit = QLineEdit('800')
+        w = self.period_edit = QLineEdit("800")
         w.setToolTip("PWM: Period")
         w.setMaximumWidth(50)
         w.setValidator(QIntValidator(1, 50000))
         hbox.addWidget(w)
 
-        w = self.width_edit = QLineEdit('5')
+        w = self.width_edit = QLineEdit("5")
         w.setToolTip("PWM: Width")
         w.setMaximumWidth(50)
         w.setValidator(QIntValidator(1, 100))
         hbox.addWidget(w)
 
-        w = QPushButton('Apply')
+        w = QPushButton("Apply")
         hbox.addWidget(w)
         w.clicked.connect(self.set_pwm_settings)
-        
-        w = self.shoot_edit = QLineEdit('10')
+
+        w = self.shoot_edit = QLineEdit("10")
         w.setToolTip("Shoot duration")
         w.setMaximumWidth(50)
         w.setValidator(QIntValidator(1, 0x10000))
         hbox.addWidget(w)
-        
-        w = QPushButton('Shoot')
+
+        w = QPushButton("Shoot")
         hbox.addWidget(w)
         w.clicked.connect(self.shoot)
 
@@ -156,22 +156,22 @@ class Window(QWidget):
         self.viewer.repaint()
 
     def on(self):
-        """ Turn-on high voltage generation. """
+        """Turn-on high voltage generation."""
         self.silicon_toaster.on()
-    
+
     def off(self):
-        """ Turn-off high voltage generation. """
+        """Turn-off high voltage generation."""
         self.silicon_toaster.off()
 
     def set_pwm_settings(self):
-        """ Reconfigure device PWM settings from UX input. """
+        """Reconfigure device PWM settings from UX input."""
         period, ok1 = QLocale().toInt(self.period_edit.text())
         width, ok2 = QLocale().toInt(self.width_edit.text())
         if ok1 and ok2:
             self.silicon_toaster.set_pwm_settings(period, width)
 
     def shoot(self):
-        """ Software shoot with duration from UX. """
+        """Software shoot with duration from UX."""
         duration, ok = QLocale().toInt(self.shoot_edit.text())
         if ok:
             self.silicon_toaster.software_shoot(duration)
@@ -180,10 +180,10 @@ class Window(QWidget):
         self.silicon_toaster.off()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     app = QApplication(sys.argv)
     if len(sys.argv) < 2:
-        dev = '/dev/ttyUSB0'
+        dev = "/dev/ttyUSB0"
     else:
         dev = sys.argv[1]
     window = Window(dev)
