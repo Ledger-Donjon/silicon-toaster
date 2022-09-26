@@ -5,32 +5,26 @@ use core::panic::PanicInfo;
 use cortex_m;
 use heapless;
 use stm32f2::stm32f215;
-use volatile_register::{RO, RW};
 
-#[repr(C)]
-pub struct RegisterBlock {
-    pub csr: RW<u32>,
-    pub rvr: RW<u32>,
-    pub cvr: RW<u32>,
-    pub calib: RO<u32>,
-}
-
-struct SystemTimer {
-    p: &'static mut RegisterBlock,
+struct SystemTimer<'a> {
+    stk: &'a stm32f215::STK,
     reload_counts: u32,
 }
 
-impl SystemTimer {
-    pub fn new() -> SystemTimer {
+impl<'a> SystemTimer<'a> {
+    const FREQ: u64 = 8047640;
+
+    pub fn new(stk: &'a stm32f215::STK) -> SystemTimer {
         let sys_timer = SystemTimer {
-            p: unsafe { &mut *(0xE000_E010 as *mut RegisterBlock) },
+            //p: unsafe { &mut *(0xE000_E010 as *mut RegisterBlock) },
+            stk,
             reload_counts: 0,
         };
         unsafe {
             // Initialize the Reload Value Register to the max.
-            sys_timer.p.rvr.write(0x00FF_FFFF);
+            stk.load_.write(|w| w.bits(0x00FF_FFFF));
             // Enable the timer, by setting the ENABLE bit (bit 0) in Control and Status register
-            sys_timer.p.csr.write(sys_timer.p.csr.read() | 0x1)
+            stk.ctrl.write(|w| w.enable().set_bit());
         };
         sys_timer
     }
@@ -41,17 +35,16 @@ impl SystemTimer {
         // The Control and Status Register's COUNTFLAG (bit 16)
         // Returns 1 if timer counted to 0 since last time this was read.
         // Meaning that a reload has been done in the Current Value Register.
-        if (self.p.csr.read() & 0x0001_0000) != 0 {
+        if self.stk.ctrl.read().countflag().bit() {
             self.reload_counts += 1;
         }
     }
 
-    pub fn get_ticks(&mut self) -> u64 {
+    fn get_ticks(&mut self) -> u64 {
         // Get the time as number of ticks, considering the counts of the reloads.
-        // It has been estimated in STM32F2 that 0x1000000 ticks corresponds to 2seconds.
         self.check_reloads();
-        let reload = self.p.rvr.read() as u64;
-        let remained_ticks = reload - (self.p.cvr.read() as u64);
+        let reload = self.stk.load_.read().reload().bits() as u64;
+        let remained_ticks = reload - (self.stk.val.read().bits() as u64);
         return remained_ticks + reload * (self.reload_counts as u64);
     }
 }
@@ -428,7 +421,7 @@ pub extern "C" fn _start() -> ! {
     delay_ms(500);
 
     // System timer to track time between to controls.
-    let mut sys_timer = SystemTimer::new();
+    let mut sys_timer = SystemTimer::new(&peripherals.STK);
 
     // Keep last applied PWM parameters
     let mut current_period: u16 = 100;
