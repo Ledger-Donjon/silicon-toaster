@@ -4,12 +4,15 @@
 mod adc_control;
 mod flash;
 mod system_timer;
+mod txrx_utils;
+
 use adc_control::ADCControl;
 use core::panic::PanicInfo;
 use cortex_m;
 use flash::Flash;
 use stm32f2::stm32f215;
 use system_timer::SystemTimer;
+use txrx_utils::{handler_usart1, usart1_has_data, TxRx};
 
 #[panic_handler]
 fn panic(_: &PanicInfo) -> ! {
@@ -33,25 +36,6 @@ fn panic(_: &PanicInfo) -> ! {
 
 pub extern "C" fn handler_default() {
     loop {}
-}
-
-/// USART interrupt handler. Called in case of data byte reception or overrun.
-/// When a byte is received, it is pushed in the USART queue. If the queue is
-/// full, the program will panic.
-pub extern "C" fn handler_usart1() {
-    unsafe {
-        let mut producer = USART1_QUEUE.split().0;
-        let peripherals = stm32f215::Peripherals::steal();
-        if peripherals.USART1.sr.read().rxne().bit() {
-            // If queue is full, panic!
-            producer
-                .enqueue(peripherals.USART1.dr.read().bits() as u8)
-                .unwrap();
-        } else {
-            // This is probably an overrun error.
-            panic!();
-        }
-    }
 }
 
 #[link_section = ".isr_vectors.reset"]
@@ -96,83 +80,6 @@ fn delay_ms(duration: u32) {
     for _ in 0..count {
         cortex_m::asm::nop();
     }
-}
-
-/// Receives a byte from USART1. Blocks until data is available.
-fn usart1_rx() -> u8 {
-    unsafe {
-        let mut producer = USART1_QUEUE.split().1;
-        loop {
-            match producer.dequeue() {
-                Some(byte) => {
-                    return byte;
-                }
-                None => {}
-            }
-        }
-    }
-}
-
-/// Return true if USART1 has data.
-fn usart1_has_data() -> bool {
-    unsafe { !USART1_QUEUE.is_empty() }
-}
-
-/// Receive a 16-bits unsigned int from USART1. Blocks until all data is
-/// available.
-fn usart1_rx_u16() -> u16 {
-    let h = (usart1_rx() as u16) << 8;
-    let l = usart1_rx() as u16;
-    h + l
-}
-
-/// Receive a 32-bits unsigned int from USART1. Blocks until all data is
-/// available.
-fn usart1_rx_u32() -> u32 {
-    let h = (usart1_rx_u16() as u32) << 16;
-    let l = usart1_rx_u16() as u32;
-    h + l
-}
-
-/// Receive a 64-bits unsigned int from USART1. Blocks until all data is
-/// available.
-fn usart1_rx_u64() -> u64 {
-    let h = (usart1_rx_u32() as u64) << 32;
-    let l = usart1_rx_u32() as u64;
-    h + l
-}
-
-/// Transmit a byte over USART1.
-/// `peripherals` - This method needs to borrow the peripherals.
-/// `value` - Byte to be transmitted.
-fn usart1_tx(peripherals: &stm32f215::Peripherals, value: u8) {
-    peripherals.USART1.dr.write(|w| w.dr().bits(value as u16));
-    // Wait until byte is transferred into the shift-register.
-    while !peripherals.USART1.sr.read().txe().bit() {}
-}
-
-/// Transmit a 16-bits word over USART1.
-/// `peripherals` - This method needs to borrow the peripherals.
-/// `value` - Byte to be transmitted.
-fn usart1_tx_u16(peripherals: &stm32f215::Peripherals, value: u16) {
-    usart1_tx(peripherals, (value >> 8) as u8);
-    usart1_tx(peripherals, (value & 0xff) as u8);
-}
-
-/// Transmit a 32-bits word over USART1.
-/// `peripherals` - This method needs to borrow the peripherals.
-/// `value` - Byte to be transmitted.
-fn usart1_tx_u32(peripherals: &stm32f215::Peripherals, value: u32) {
-    usart1_tx_u16(peripherals, ((value >> 16) & 0xffff) as u16);
-    usart1_tx_u16(peripherals, ((value >> 0) & 0xffff) as u16);
-}
-
-/// Transmit a 64-bits word over USART1.
-/// `peripherals` - This method needs to borrow the peripherals.
-/// `value` - Byte to be transmitted.
-fn usart1_tx_u64(peripherals: &stm32f215::Peripherals, value: u64) {
-    usart1_tx_u32(peripherals, ((value >> 32) & 0xffffffff) as u32);
-    usart1_tx_u32(peripherals, ((value >> 0) & 0xffffffff) as u32);
 }
 
 /// Enable or disable very-high voltage generation by enabling or disabling the
@@ -303,18 +210,18 @@ pub extern "C" fn _start() -> ! {
 
     // Configure UART1
     // UART Enable, Transmitter Enable, Receiver Enable
-    peripherals
-        .USART1
+    let usart1 = &peripherals.USART1;
+    usart1
         .cr1
         .write(|w| w.ue().set_bit().te().set_bit().re().set_bit());
-    peripherals.USART1.cr2.write(|w| w.stop().bits(2));
+    usart1.cr2.write(|w| w.stop().bits(2));
     // Baudrate is Fck/(8*(2-OVER8)*DIV)
     // Fck = 64 MHz
     // OVER8 = 0
     // DIV = BRR / 16
     // Here we set 9600 bps
     let brr_value = 6666;
-    peripherals.USART1.brr.write(|w| {
+    usart1.brr.write(|w| {
         w.div_mantissa()
             .bits(brr_value >> 4)
             .div_fraction()
@@ -331,7 +238,7 @@ pub extern "C" fn _start() -> ! {
         .ospeedr
         .write(|w| w.ospeedr10().very_high_speed().ospeedr9().very_high_speed());
     // Enable interrupt for USART1
-    peripherals.USART1.cr1.modify(|_, w| w.rxneie().set_bit());
+    usart1.cr1.modify(|_, w| w.rxneie().set_bit());
     unsafe {
         cortex_m::peripheral::NVIC::unmask(stm32f215::Interrupt::USART1);
     }
@@ -397,23 +304,25 @@ pub extern "C" fn _start() -> ! {
             set_pwm_parameters(&peripherals, current_period, current_width).unwrap();
         }
         if usart1_has_data() {
-            let command_byte = usart1_rx();
+            let command_byte: u8 = usart1.rx();
             match command_byte {
                 0x01 => {
-                    let value = usart1_rx();
+                    // Command to activate/deactivate the voltage generator.
+                    let value: u8 = usart1.rx();
                     assert!(value <= 1);
                     high_voltage_enabled = value != 0;
                     set_high_voltage_generator(&peripherals, high_voltage_enabled);
-                    usart1_tx(&peripherals, command_byte);
+                    usart1.tx(command_byte);
                 }
                 0x02 => {
-                    usart1_tx_u16(&peripherals, adc_result);
+                    // Command to get the raw value obtained by the ADC.
+                    usart1.tx(adc_result);
                 }
                 0x03 => {
-                    current_period = usart1_rx_u16();
-                    current_width = usart1_rx_u16();
-                    usart1_tx(
-                        &peripherals,
+                    // Command to set the values of PWM (period and width).
+                    current_period = usart1.rx();
+                    current_width = usart1.rx();
+                    usart1.tx(
                         match set_pwm_parameters(&peripherals, current_period, current_width) {
                             Ok(_) => command_byte,
                             Err(_) => !command_byte,
@@ -421,30 +330,34 @@ pub extern "C" fn _start() -> ! {
                     );
                 }
                 0x04 => {
-                    let duration = usart1_rx_u16();
+                    // Command to perform a software shoot.
+                    let duration: u16 = usart1.rx();
                     software_shoot(&peripherals, duration);
-                    usart1_tx(&peripherals, command_byte);
+                    usart1.tx(command_byte);
                 }
                 0x05 => {
-                    usart1_tx_u64(&peripherals, sys_timer.get_ticks());
+                    // Command to get the current time from SystemTimer.
+                    usart1.tx(sys_timer.get_time());
                 }
                 0x06 => {
                     // Command to get the ADC Control parameters.
-                    usart1_tx(&peripherals, if adc_ctrl.enabled { 1 } else { 0 });
-                    usart1_tx_u16(&peripherals, adc_ctrl.setpoint());
+                    usart1.tx(adc_ctrl.enabled);
+                    usart1.tx(adc_ctrl.setpoint());
                 }
                 0x07 => {
                     // Command to set the ADC Control parameters.
-                    adc_ctrl.enabled = usart1_rx() != 0;
+                    let enabled: u8 = usart1.rx();
+                    adc_ctrl.enabled = enabled != 0;
                     if adc_ctrl.enabled {
                         // Force to use 800 as PWM period.
                         current_period = 800;
                     }
-                    adc_ctrl.set_setpoint(usart1_rx_u16());
+                    adc_ctrl.set_setpoint(usart1.rx());
                 }
                 0x08 => {
-                    usart1_tx_u16(&peripherals, current_period);
-                    usart1_tx_u16(&peripherals, current_width);
+                    // Command to get the values of PWM (period and width).
+                    usart1.tx(current_period);
+                    usart1.tx(current_width);
                 }
                 _ => {
                     // Unknown command. Panic!
