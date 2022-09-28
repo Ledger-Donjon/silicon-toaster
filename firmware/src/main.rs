@@ -255,8 +255,8 @@ pub extern "C" fn _start() -> ! {
     // System timer to track time between two controls.
     let mut sys_timer = SystemTimer::new(&peripherals.STK);
 
-    // Keep last applied PWM parameters
-    let mut current_period: u16 = 100;
+    // Variable to track last applied PWM parameters.
+    let mut current_period: u16 = 800;
     let mut current_width: u16 = 5;
 
     // Object to perform flash operations.
