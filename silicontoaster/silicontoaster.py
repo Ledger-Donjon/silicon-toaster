@@ -32,17 +32,39 @@ class SiliconToaster:
                 raise RuntimeError("No Silicon Toaster device found")
 
         self.ser = serial.Serial(dev, 9600)
-        self.calibration = [
+        self.calibration_raw_to_v = [
             -4.02294398e-11,
             1.53492378e-07,
             -2.71166328e-04,
             7.66927146e-01,
             -1.12729564e00,
         ]
+        self.calibration_v_to_raw = [
+            5.59972560e-10,
+            -1.02408301e-06,
+            1.06453179e-03,
+            1.24457162e00,
+            2.57379247e00,
+        ]
         self._software_limit = None
         self.get_voltage_mapping()
 
-    def read_voltage_raw(self):
+    @staticmethod
+    def convert(value: Union[float, int], calibration: list[float]) -> float:
+        """Converts a value to another according to the calibration coefficients"""
+        v = 0.0
+        value = float(value)
+        for i, c in enumerate(calibration):
+            v += c * value ** (len(calibration) - i - 1)
+        return v
+
+    def to_raw(self, value: float) -> int:
+        return int(round(self.convert(value, self.calibration_v_to_raw)))
+
+    def to_volt(self, value: int) -> float:
+        return self.convert(value, self.calibration_raw_to_v)
+
+    def read_voltage_raw(self) -> int:
         """
         Retrieve raw ADC voltage measurement from the device.
         :return: ADC measurement.
@@ -58,9 +80,7 @@ class SiliconToaster:
         :rtype: float
         """
         raw = self.read_voltage_raw()
-        v = 0
-        for i, c in enumerate(self.calibration):
-            v += c * raw ** (len(self.calibration) - i - 1)
+        v = self.to_volt(raw)
         # Checks the software limitation
         if self._software_limit is not None and v > self._software_limit:
             self.off()
