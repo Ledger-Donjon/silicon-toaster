@@ -163,8 +163,11 @@ class SiliconToaster:
 
     def get_time(self) -> float:
         self.ser.write(b"\x05")
-        time = int.from_bytes(self.ser.read(8), "big") / 0x800000
-        return time
+        return struct.unpack(">d", self.ser.read(8))[0]
+
+    def get_ticks(self) -> int:
+        self.ser.write(b"\x09")
+        return struct.unpack(">Q", self.ser.read(8))[0]
 
     def __del__(self):
         self.off()

@@ -359,6 +359,10 @@ pub extern "C" fn _start() -> ! {
                     usart1.tx(current_period);
                     usart1.tx(current_width);
                 }
+                0x09 => {
+                    // Command to get the current tick from SystemTimer.
+                    usart1.tx(sys_timer.get_ticks());
+                }
                 _ => {
                     // Unknown command. Panic!
                     panic!();
