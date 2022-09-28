@@ -4,10 +4,9 @@
 mod adc_control;
 mod flash;
 mod system_timer;
+use adc_control::ADCControl;
 use core::panic::PanicInfo;
 use cortex_m;
-use heapless;
-use pid::Pid;
 use flash::Flash;
 use stm32f2::stm32f215;
 use system_timer::SystemTimer;
