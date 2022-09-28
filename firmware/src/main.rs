@@ -40,11 +40,11 @@ pub extern "C" fn handler_default() {
 
 #[link_section = ".isr_vectors.reset"]
 #[no_mangle]
-pub static reset_vector: unsafe extern "C" fn() -> ! = _start;
+pub static RESET_VECTOR: unsafe extern "C" fn() -> ! = _start;
 
 #[link_section = ".isr_vectors"]
 #[no_mangle]
-pub static interrupt_vectors: [unsafe extern "C" fn(); 95] = {
+pub static INTERRUPT_VECTORS: [unsafe extern "C" fn(); 95] = {
     let mut v: [unsafe extern "C" fn(); 95] = [handler_default; 95];
     v[51] = handler_usart1;
     v
@@ -71,7 +71,7 @@ fn set_15v_regulator(peripherals: &stm32f215::Peripherals, state: bool) {
     peripherals.GPIOB.odr.modify(|_, w| w.odr11().bit(state));
 }
 
-/// Approximated delay function. Precise enought for what we need to do...
+/// Approximated delay function. Precise enough for what we need to do...
 #[inline(never)]
 fn delay_ms(duration: u32) {
     // Estimated duration for each loop: 7 clock cycles.
