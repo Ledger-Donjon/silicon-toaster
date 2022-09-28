@@ -1,6 +1,5 @@
 #!/usr/bin/python3
-
-from typing import Optional
+from typing import Optional, Union
 import serial
 import serial.tools.list_ports
 import os
