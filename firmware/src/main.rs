@@ -2,10 +2,12 @@
 #![no_main]
 
 mod adc_control;
+mod flash;
 use core::panic::PanicInfo;
 use cortex_m;
 use heapless;
 use pid::Pid;
+use flash::Flash;
 use stm32f2::stm32f215;
 
 struct SystemTimer<'a> {
@@ -396,6 +398,10 @@ pub extern "C" fn _start() -> ! {
     let mut current_period: u16 = 100;
     let mut current_width: u16 = 5;
 
+    // Object to perform flash operations.
+    let flash = Flash {
+        flash: &peripherals.FLASH,
+    };
 
     // ADC's output Control, containing a PID.
     // The constructor reads the value from flash if it exists, otherwise
