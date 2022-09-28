@@ -71,7 +71,7 @@ class SiliconToaster:
         :rtype: int
         """
         self.ser.write(b"\x02")
-        return int.from_bytes(self.ser.read(2), "big")
+        return int.from_bytes(self.ser.read(2), "big", signed=False)
 
     def read_voltage(self) -> float:
         """
@@ -116,8 +116,8 @@ class SiliconToaster:
         if (width < 0) or (width > period):
             raise ValueError("Invalid PWM width")
         command = bytearray(b"\x03")
-        command += period.to_bytes(2, "big")
-        command += width.to_bytes(2, "big")
+        command += period.to_bytes(2, "big", signed=False)
+        command += width.to_bytes(2, "big", signed=False)
         self.ser.write(command)
         assert self.ser.read(1) == b"\x03"
 
@@ -127,8 +127,8 @@ class SiliconToaster:
         :return: A tuple containing the period and the width.
         """
         self.ser.write(b"\x08")
-        period = int.from_bytes(self.ser.read(2), "big")
-        width = int.from_bytes(self.ser.read(2), "big")
+        period = int.from_bytes(self.ser.read(2), "big", signed=False)
+        width = int.from_bytes(self.ser.read(2), "big", signed=False)
         return period, width
 
     def software_shoot(self, duration: int):
@@ -137,7 +137,7 @@ class SiliconToaster:
         """
         assert duration in range(0x10000)
         command = bytearray(b"\x04")
-        command += duration.to_bytes(2, "big")
+        command += duration.to_bytes(2, "big", signed=False)
         self.ser.write(command)
         assert self.ser.read(1) == b"\x04"
 
