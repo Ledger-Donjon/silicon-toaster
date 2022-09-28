@@ -1,6 +1,7 @@
 #![no_std]
 #![no_main]
 
+mod adc_control;
 use core::panic::PanicInfo;
 use cortex_m;
 use heapless;
@@ -50,40 +51,6 @@ impl<'a> SystemTimer<'a> {
     }
 }
 
-struct ADCControl {
-    pub enabled: bool,
-    // Time interval between two controls (in ticks: 1 second corresponds to 8047640 ticks).
-    pub control_time: u64,
-    pub last_control: u64,
-    pid: Pid<f32>,
-}
-
-impl ADCControl {
-    pub fn next_control_output(&mut self, adc_result: u16, time: u64) -> u16 {
-        // Updates the last control time and requests for next control value from PID
-        self.last_control = time;
-        // The PID object will give a value between -output_limit and output_limit
-        return (self.pid.next_control_output(adc_result as f32).output + self.pid.output_limit)
-            as u16;
-    }
-
-    pub fn needs_control(&self, time: u64) -> bool {
-        // The control must be enabled and
-        // the last control has been executed long time enough
-        return self.enabled && (time.abs_diff(self.last_control) > self.control_time);
-    }
-
-    // Getter for setpoint for the Controller.
-    pub fn setpoint(&self) -> u16 {
-        return self.pid.setpoint as u16;
-    }
-
-    // Setter for setpoint for the Controller.
-    pub fn set_setpoint(&mut self, setpoint: u16) {
-        self.pid.setpoint = setpoint as f32;
-        self.pid.reset_integral_term();
-    }
-}
 
 static mut USART1_QUEUE: heapless::spsc::Queue<u8, heapless::consts::U128> =
     heapless::spsc::Queue(heapless::i::Queue::new());
@@ -429,13 +396,11 @@ pub extern "C" fn _start() -> ! {
     let mut current_period: u16 = 100;
     let mut current_width: u16 = 5;
 
-    // ADC Control.
-    let mut adc_ctrl = ADCControl {
-        enabled: true,
-        control_time: SystemTimer::FREQ / 1000, // ~1milliseconds
-        last_control: sys_timer.get_ticks(),
-        pid: Pid::new(100.0, 0.0, 0.0, 200.0, 200.0, 200.0, 200.0, 0.0),
-    };
+
+    // ADC's output Control, containing a PID.
+    // The constructor reads the value from flash if it exists, otherwise
+    // get generic values.
+    let mut adc_ctrl = ADCControl::new();
 
     // Configure PWM using TIM1.
     // PWM output on PA8. Alternate Function 1.
