@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+import struct
 from typing import Optional, Union
 import serial
 import serial.tools.list_ports
