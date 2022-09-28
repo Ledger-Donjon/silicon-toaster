@@ -18,10 +18,14 @@ class SiliconToaster:
             possible_ports = []
             for port in serial.tools.list_ports.comports():
                 # USB description string can be 'Scaffold', with uppercase 'S'.
-                if (port.product is not None) and ((sn is None) or (port.serial_number == sn)):
+                if (port.product is not None) and (
+                    (sn is None) or (port.serial_number == sn)
+                ):
                     possible_ports.append(port)
             if len(possible_ports) > 1:
-                raise RuntimeError("Multiple Silicon Toaster devices found! I don't know which one to use.")
+                raise RuntimeError(
+                    "Multiple Silicon Toaster devices found! I don't know which one to use."
+                )
             elif len(possible_ports) == 1:
                 dev = possible_ports[0].device
             else:
@@ -60,7 +64,9 @@ class SiliconToaster:
         # Checks the software limitation
         if self._software_limit is not None and v > self._software_limit:
             self.off()
-            raise RuntimeWarning(f"VOLTAGE IS TOO HIGH {v}V > {self._software_limit}V. Turning off.")
+            raise RuntimeWarning(
+                f"VOLTAGE IS TOO HIGH {v}V > {self._software_limit}V. Turning off."
+            )
         return v
 
     def on(self):
@@ -96,6 +102,10 @@ class SiliconToaster:
         assert self.ser.read(1) == b"\x03"
 
     def get_pwm_settings(self) -> tuple[int, int]:
+        """
+        Retrieve the last values set for PWM.
+        :return: A tuple containing the period and the width.
+        """
         self.ser.write(b"\x08")
         period = int.from_bytes(self.ser.read(2), "big")
         width = int.from_bytes(self.ser.read(2), "big")
@@ -134,7 +144,9 @@ class SiliconToaster:
             periods.append(int(record["period"]))
             widths.append(int(record["width"]))
             voltages.append(float(record["voltage"]))
-        self.voltage_mapping = LinearNDInterpolator(numpy.dstack((periods, widths))[0], voltages)
+        self.voltage_mapping = LinearNDInterpolator(
+            numpy.dstack((periods, widths))[0], voltages
+        )
 
     def get_adc_control_param(self) -> tuple[bool, int, int, int, int]:
         self.ser.write(b"\x07")
