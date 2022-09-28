@@ -3,59 +3,14 @@
 
 mod adc_control;
 mod flash;
+mod system_timer;
 use core::panic::PanicInfo;
 use cortex_m;
 use heapless;
 use pid::Pid;
 use flash::Flash;
 use stm32f2::stm32f215;
-
-struct SystemTimer<'a> {
-    stk: &'a stm32f215::STK,
-    reload_counts: u32,
-}
-
-impl<'a> SystemTimer<'a> {
-    const FREQ: u64 = 8047640;
-
-    pub fn new(stk: &'a stm32f215::STK) -> SystemTimer {
-        let sys_timer = SystemTimer {
-            //p: unsafe { &mut *(0xE000_E010 as *mut RegisterBlock) },
-            stk,
-            reload_counts: 0,
-        };
-        unsafe {
-            // Initialize the Reload Value Register to the max.
-            stk.load_.write(|w| w.bits(0x00FF_FFFF));
-            // Enable the timer, by setting the ENABLE bit (bit 0) in Control and Status register
-            stk.ctrl.write(|w| w.enable().set_bit());
-        };
-        sys_timer
-    }
-
-    // This function must be called regularly to count the reloads operation
-    // by evaluating the COUNTFLAG bit of Control and Status Register.
-    fn check_reloads(&mut self) {
-        // The Control and Status Register's COUNTFLAG (bit 16)
-        // Returns 1 if timer counted to 0 since last time this was read.
-        // Meaning that a reload has been done in the Current Value Register.
-        if self.stk.ctrl.read().countflag().bit() {
-            self.reload_counts += 1;
-        }
-    }
-
-    fn get_ticks(&mut self) -> u64 {
-        // Get the time as number of ticks, considering the counts of the reloads.
-        self.check_reloads();
-        let reload = self.stk.load_.read().reload().bits() as u64;
-        let remained_ticks = reload - (self.stk.val.read().bits() as u64);
-        return remained_ticks + reload * (self.reload_counts as u64);
-    }
-}
-
-
-static mut USART1_QUEUE: heapless::spsc::Queue<u8, heapless::consts::U128> =
-    heapless::spsc::Queue(heapless::i::Queue::new());
+use system_timer::SystemTimer;
 
 #[panic_handler]
 fn panic(_: &PanicInfo) -> ! {
@@ -391,7 +346,7 @@ pub extern "C" fn _start() -> ! {
     set_led_red(&peripherals, true);
     delay_ms(500);
 
-    // System timer to track time between to controls.
+    // System timer to track time between two controls.
     let mut sys_timer = SystemTimer::new(&peripherals.STK);
 
     // Keep last applied PWM parameters
