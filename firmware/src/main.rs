@@ -363,6 +363,32 @@ pub extern "C" fn _start() -> ! {
                     // Command to get the current tick from SystemTimer.
                     usart1.tx(sys_timer.get_ticks());
                 }
+                0x0A => {
+                    // Command to retrieve the values of the
+                    // Kp, Ki, Kd coefficients of the ADC Control
+                    // Optionally restore those values from Flash.
+                    let read_from_flash: bool = usart1.rx();
+                    if read_from_flash {
+                        adc_ctrl.read_from_flash();
+                    }
+                    usart1.tx(adc_ctrl.pid.kp);
+                    usart1.tx(adc_ctrl.pid.ki);
+                    usart1.tx(adc_ctrl.pid.kd);
+                    usart1.tx(adc_ctrl.control_ticks);
+                }
+                0x0B => {
+                    // Command to set the values of the
+                    // Kp, Ki, Kd coefficients of the ADC Control
+                    // Optionally store those values in Flash.
+                    let store_in_flash: bool = usart1.rx();
+                    adc_ctrl.pid.kp = usart1.rx();
+                    adc_ctrl.pid.ki = usart1.rx();
+                    adc_ctrl.pid.kd = usart1.rx();
+                    adc_ctrl.control_ticks = usart1.rx();
+                    if store_in_flash {
+                        adc_ctrl.store_in_flash(&flash);
+                    }
+                }
                 _ => {
                     // Unknown command. Panic!
                     panic!();

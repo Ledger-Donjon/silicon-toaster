@@ -169,5 +169,22 @@ class SiliconToaster:
         self.ser.write(b"\x09")
         return struct.unpack(">Q", self.ser.read(8))[0]
 
+    def read_PID(self, from_flash=False):
+        command = b"\x0A"
+        command += struct.pack(">?", from_flash)
+        self.ser.write(command)
+        return struct.unpack(">3fQ", self.ser.read(3 * 4 + 8))
+
+    def write_PID(
+        self,
+        kp: float,
+        ki: float,
+        kd: float,
+        control_ticks: int,
+        to_flash=False,
+    ):
+        command = b"\x0B"
+        command += struct.pack(">?3fQ", to_flash, kp, ki, kd, control_ticks)
+        self.ser.write(command)
     def __del__(self):
         self.off()
