@@ -4,6 +4,8 @@ version = "0.1.0"
 authors = ["yhql <victor_servant@hotmail.com>", "Olivier Hériveaux <olivier.heriveaux@ledger.fr>"]
 edition = "2018"
 
+[dependencies.pid]
+version = "3.0.0"
 
 [dependencies.cortex-m]
 version = "0.6.1"

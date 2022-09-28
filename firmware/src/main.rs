@@ -4,6 +4,7 @@
 use core::panic::PanicInfo;
 use cortex_m;
 use heapless;
+use pid::Pid;
 use stm32f2::stm32f215;
 
 struct SystemTimer<'a> {
@@ -51,34 +52,36 @@ impl<'a> SystemTimer<'a> {
 
 struct ADCControl {
     pub enabled: bool,
-    // Time interval between two controls (in ticks: 1 second corresponds to 0x80_0000 ticks).
+    // Time interval between two controls (in ticks: 1 second corresponds to 8047640 ticks).
     pub control_time: u64,
-    pub destination: u16,
-    pub hysteresis: u16,
     pub last_control: u64,
+    pid: Pid<f32>,
 }
 
 impl ADCControl {
-    fn needs_control(&self, time: u64, adc_value: u16) -> bool {
-        // The control must be enabled
-        if !self.enabled {
-            return false;
-        }
-        // The last control has been executed long time enough
-        if time.abs_diff(self.last_control) < self.control_time {
-            return false;
-        }
-        // The current ADC value is far enough from desired value
-        return self.destination.abs_diff(adc_value) > self.hysteresis;
+    pub fn next_control_output(&mut self, adc_result: u16, time: u64) -> u16 {
+        // Updates the last control time and requests for next control value from PID
+        self.last_control = time;
+        // The PID object will give a value between -output_limit and output_limit
+        return (self.pid.next_control_output(adc_result as f32).output + self.pid.output_limit)
+            as u16;
     }
 
-    pub fn adjust(&mut self, time: u64, adc_value: u16) -> i16 {
-        if !self.needs_control(time, adc_value) {
-            return 0;
-        }
-        // Update the last control timestamping
-        self.last_control = time;
-        return if adc_value > self.destination { -1 } else { 1 };
+    pub fn needs_control(&self, time: u64) -> bool {
+        // The control must be enabled and
+        // the last control has been executed long time enough
+        return self.enabled && (time.abs_diff(self.last_control) > self.control_time);
+    }
+
+    // Getter for setpoint for the Controller.
+    pub fn setpoint(&self) -> u16 {
+        return self.pid.setpoint as u16;
+    }
+
+    // Setter for setpoint for the Controller.
+    pub fn set_setpoint(&mut self, setpoint: u16) {
+        self.pid.setpoint = setpoint as f32;
+        self.pid.reset_integral_term();
     }
 }
 
@@ -94,14 +97,13 @@ fn panic(_: &PanicInfo) -> ! {
         // Here we just blink the red LED forever to indicate there is a
         // problem.
         let peripherals = stm32f215::Peripherals::steal();
+        set_high_voltage_generator(&peripherals, false);
         set_led_green(&peripherals, false);
         loop {
-            for _ in 0..50000 {
-                set_led_red(&peripherals, true);
-            }
-            for _ in 0..50000 {
-                set_led_red(&peripherals, false);
-            }
+            set_led_red(&peripherals, true);
+            delay_ms(250);
+            set_led_red(&peripherals, false);
+            delay_ms(250);
         }
     }
 }
@@ -429,11 +431,10 @@ pub extern "C" fn _start() -> ! {
 
     // ADC Control.
     let mut adc_ctrl = ADCControl {
-        enabled: false,
-        control_time: 0x0080_0000, // ~1 second.
-        destination: 0,
-        hysteresis: 10,
+        enabled: true,
+        control_time: SystemTimer::FREQ / 1000, // ~1milliseconds
         last_control: sys_timer.get_ticks(),
+        pid: Pid::new(100.0, 0.0, 0.0, 200.0, 200.0, 200.0, 200.0, 0.0),
     };
 
     // Configure PWM using TIM1.
@@ -465,14 +466,10 @@ pub extern "C" fn _start() -> ! {
         // ADC Control. Get current value and timestamp.
         let adc_result: u16 = adc1.dr.read().data().bits();
         let now = sys_timer.get_ticks();
-        // Check for adjustment to perform according to timing and current ADC value.
-        let adjust_value = adc_ctrl.adjust(now, adc_result);
-        if adjust_value != 0 {
-            let new_width = current_width as i16 + adjust_value;
-            if new_width > 0 && (new_width as u16) < current_period && new_width < 30 {
-                current_width = new_width as u16;
-                set_pwm_parameters(&peripherals, current_period, current_width).unwrap();
-            }
+
+        if adc_ctrl.needs_control(now) {
+            current_width = adc_ctrl.next_control_output(adc_result, now);
+            set_pwm_parameters(&peripherals, current_period, current_width).unwrap();
         }
         if usart1_has_data() {
             let command_byte = usart1_rx();
@@ -507,18 +504,18 @@ pub extern "C" fn _start() -> ! {
                     usart1_tx_u64(&peripherals, sys_timer.get_ticks());
                 }
                 0x06 => {
-                    // Command to tune the ADC Control parameters.
-                    adc_ctrl.enabled = usart1_rx() != 0; // Enable or not the ADC control
-                    adc_ctrl.destination = usart1_rx_u16(); // Set the destination voltage (raw value)
-                    adc_ctrl.hysteresis = usart1_rx_u16(); // Set the hysteresis
-                    adc_ctrl.control_time = usart1_rx_u64(); // Set the time interval between two controls
+                    // Command to get the ADC Control parameters.
+                    usart1_tx(&peripherals, if adc_ctrl.enabled { 1 } else { 0 });
+                    usart1_tx_u16(&peripherals, adc_ctrl.setpoint());
                 }
                 0x07 => {
-                    usart1_tx(&peripherals, if adc_ctrl.enabled { 1 } else { 0 });
-                    usart1_tx_u16(&peripherals, adc_ctrl.destination);
-                    usart1_tx_u16(&peripherals, adc_ctrl.hysteresis);
-                    usart1_tx_u64(&peripherals, adc_ctrl.control_time);
-                    usart1_tx_u64(&peripherals, adc_ctrl.last_control);
+                    // Command to set the ADC Control parameters.
+                    adc_ctrl.enabled = usart1_rx() != 0;
+                    if adc_ctrl.enabled {
+                        // Force to use 800 as PWM period.
+                        current_period = 800;
+                    }
+                    adc_ctrl.set_setpoint(usart1_rx_u16());
                 }
                 0x08 => {
                     usart1_tx_u16(&peripherals, current_period);
