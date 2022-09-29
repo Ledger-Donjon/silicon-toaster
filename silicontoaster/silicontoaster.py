@@ -168,29 +168,14 @@ class SiliconToaster:
             numpy.dstack((periods, widths))[0], voltages
         )
 
-    def get_adc_control_param(self) -> tuple[bool, int, int, int, int]:
-        self.ser.write(b"\x07")
-        adc_control_enabled = self.ser.read(1) != b"\x00"
-        adc_destination = int.from_bytes(self.ser.read(2), "big")
-        adc_hysteresis = int.from_bytes(self.ser.read(2), "big")
-        adc_control_time = int.from_bytes(self.ser.read(8), "big")
-        adc_last_control = int.from_bytes(self.ser.read(8), "big")
-        print(
-            "ADC Control Params:",
-            adc_control_enabled,
-            adc_destination,
-            adc_hysteresis,
-            adc_control_time,
-            adc_last_control,
-        )
-        return adc_control_enabled, adc_destination, adc_hysteresis, adc_control_time, adc_last_control
+    def get_adc_control_param(self) -> tuple[bool, float]:
+        self.ser.write(b"\x06")
+        enabled, destination = struct.unpack(">?H", self.ser.read(1 + 2))
+        return enabled, self.to_volt(destination)
 
-    def set_adc_control_param(self, enabled: bool, destination: int, hysteresis: int, control_time: int):
-        command = bytearray(b"\x06")
-        command += b"\x01" if enabled else b"\x00"
-        command += destination.to_bytes(2, "big")
-        command += hysteresis.to_bytes(2, "big")
-        command += control_time.to_bytes(8, "big")
+    def set_adc_control_param(self, enabled: bool, destination: float):
+        command = b"\x07"
+        command += struct.pack(">?H", enabled, self.to_raw(destination))
         self.ser.write(command)
 
     def get_time(self) -> float:
@@ -201,13 +186,13 @@ class SiliconToaster:
         self.ser.write(b"\x09")
         return struct.unpack(">Q", self.ser.read(8))[0]
 
-    def read_PID(self, from_flash=False):
+    def get_adc_control_PID(self, from_flash=False):
         command = b"\x0A"
         command += struct.pack(">?", from_flash)
         self.ser.write(command)
         return struct.unpack(">3fQ", self.ser.read(3 * 4 + 8))
 
-    def write_PID(
+    def set_adc_control_PID(
         self,
         kp: float,
         ki: float,
@@ -218,5 +203,35 @@ class SiliconToaster:
         command = b"\x0B"
         command += struct.pack(">?3fQ", to_flash, kp, ki, kd, control_ticks)
         self.ser.write(command)
+
+    def get_adc_control_PID_ex(self):
+        """
+        Retrieve supplementary values of configuration and information of the ADC Control.
+        Those values are transient.
+
+        :return: A tuple containing the configuration of the PID:
+            The PID limitations of value contributed by Kp, Ki and Kd.
+            The PID's output limit. The PID setpoint (float). The timestamp (
+            in ticks) of last PID sampling.
+        """
+        command = b"\x0D"
+        self.ser.write(command)
+        return struct.unpack(">5fQ", self.ser.read(3 * 4 + 8))
+
+    def set_adc_control_PID_ex(
+        self, p_limit: float, i_limit: float, d_limit: float, output_limit: float
+    ):
+        """
+        Set supplementary values of configuration of the ADC Control.
+        Those values are transient and are reset to their default values on startup.
+        :param p_limit: PID limitation of value contributed by Kp. Default is 200.0.
+        :param i_limit: PID limitation of value contributed by Ki. Default is 200.0.
+        :param d_limit: PID limitation of value contributed by Kd. Default is 200.0.
+        :param output_limit: PID limitation of output value. Default is 200.0.
+        """
+        command = b"\x0B"
+        command += struct.pack(">4f", p_limit, i_limit, d_limit, output_limit)
+        self.ser.write(command)
+
     def __del__(self):
         self.off()

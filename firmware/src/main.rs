@@ -389,6 +389,22 @@ pub extern "C" fn _start() -> ! {
                         adc_ctrl.store_in_flash(&flash);
                     }
                 }
+                0x0C => {
+                    // Command to set more values of the configuration of the ADC Control
+                    adc_ctrl.pid.p_limit = usart1.rx();
+                    adc_ctrl.pid.i_limit = usart1.rx();
+                    adc_ctrl.pid.d_limit = usart1.rx();
+                    adc_ctrl.pid.output_limit = usart1.rx();
+                }
+                0x0D => {
+                    // Command to retrieve more values of the configuration of the ADC Control
+                    usart1.tx(adc_ctrl.pid.p_limit);
+                    usart1.tx(adc_ctrl.pid.i_limit);
+                    usart1.tx(adc_ctrl.pid.d_limit);
+                    usart1.tx(adc_ctrl.pid.output_limit);
+                    usart1.tx(adc_ctrl.pid.setpoint);
+                    usart1.tx(adc_ctrl.last_control);
+                }
                 _ => {
                     // Unknown command. Panic!
                     panic!();
