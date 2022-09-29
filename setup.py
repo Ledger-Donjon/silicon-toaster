@@ -12,5 +12,5 @@ setup(
     description='',
     package_data={'': ['../calibration_voltage.log']},
     include_package_data=True,
-    python_requires=">=3.4"
+    python_requires=">=3.9"
 )

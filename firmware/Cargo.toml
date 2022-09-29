@@ -1,8 +1,9 @@
 [package]
 name = "silicontoaster"
-version = "0.1.0"
-authors = ["yhql <victor_servant@hotmail.com>", "Olivier Hériveaux <olivier.heriveaux@ledger.fr>"]
-edition = "2018"
+version = "0.1.1"
+authors = ["yhql <victor_servant@hotmail.com>", "Olivier Hériveaux <olivier.heriveaux@ledger.fr>",
+            "Michaël Mouchous <michael.mouchous@ledger.fr>"]
+edition = "2021"
 
 [dependencies.pid]
 version = "3.0.0"
