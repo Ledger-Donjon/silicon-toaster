@@ -127,7 +127,7 @@ fn set_pwm_parameters(tim1: &stm32f215::TIM1, period: u16, width: u16) -> Result
         return Err(());
     }
     tim1.arr.write(|w| w.arr().bits(period - 1));
-    tim1.ccr1.write(|w| w.ccr().bits(width));
+    tim1.ccr1().write(|w| w.ccr().bits(width));
     Ok(())
 }
 
@@ -294,8 +294,7 @@ pub extern "C" fn _start() -> ! {
     let adc1 = &peripherals.ADC1;
     adc1.cr2.write(|w| w.cont().set_bit().adon().set_bit());
     adc1.cr2.modify(|_, w| w.swstart().set_bit()); // Start the conversion
-                                                   // I don't understand why the following is unsafe...
-    adc1.smpr2.write(|w| unsafe { w.smp0().bits(7) });
+    adc1.smpr2.write(|w| w.smp0().bits(7));
 
     let mut high_voltage_enabled = false;
     set_high_voltage_generator(&peripherals, high_voltage_enabled);
