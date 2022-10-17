@@ -178,9 +178,6 @@ class SiliconToaster:
         command += struct.pack(">?H", enabled, self.to_raw(destination))
         self.ser.write(command)
 
-    def get_time(self) -> float:
-        self.ser.write(b"\x05")
-        return struct.unpack(">d", self.ser.read(8))[0]
 
     def get_ticks(self) -> int:
         self.ser.write(b"\x09")

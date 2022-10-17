@@ -40,10 +40,4 @@ impl<'a> SystemTimer<'a> {
         let remained_ticks = reload - (self.stk.val.read().bits() as u64);
         return remained_ticks + reload * (self.reload_counts as u64);
     }
-
-    pub fn get_time(&mut self) -> f64 {
-        // Get the time as seconds
-        // It has been estimated that 8047640 ticks corresponds to 1 second.
-        self.get_ticks() as f64 / SystemTimer::FREQ as f64
-    }
 }

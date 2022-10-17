@@ -337,7 +337,7 @@ pub extern "C" fn _start() -> ! {
                 }
                 0x05 => {
                     // Command to get the current time from SystemTimer.
-                    usart1.tx(sys_timer.get_time());
+                    usart1.tx(sys_timer.get_ticks());
                 }
                 0x06 => {
                     // Command to get the ADC Control parameters.
@@ -358,10 +358,6 @@ pub extern "C" fn _start() -> ! {
                     // Command to get the values of PWM (period and width).
                     usart1.tx(current_period);
                     usart1.tx(current_width);
-                }
-                0x09 => {
-                    // Command to get the current tick from SystemTimer.
-                    usart1.tx(sys_timer.get_ticks());
                 }
                 0x0A => {
                     // Command to retrieve the values of the
