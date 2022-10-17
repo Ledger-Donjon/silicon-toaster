@@ -24,11 +24,11 @@ fn panic(_: &PanicInfo) -> ! {
         // problem.
         let peripherals = stm32f215::Peripherals::steal();
         set_high_voltage_generator(&peripherals, false);
-        set_led_green(&peripherals, false);
+        set_led_green(&peripherals.GPIOC, false);
         loop {
-            set_led_red(&peripherals, true);
+            set_led_red(&peripherals.GPIOC, true);
             delay_ms(250);
-            set_led_red(&peripherals, false);
+            set_led_red(&peripherals.GPIOC, false);
             delay_ms(250);
         }
     }
@@ -51,27 +51,32 @@ pub static INTERRUPT_VECTORS: [unsafe extern "C" fn(); 95] = {
 };
 
 /// Toggle the red LED on or off.
-/// `peripherals` - This method needs to borrow the peripherals.
-/// `state` - true to turn on the LED, false to turn off.
-fn set_led_red(peripherals: &stm32f215::Peripherals, state: bool) {
-    peripherals.GPIOC.odr.modify(|_, w| w.odr13().bit(state));
+/// # Arguments
+/// * `gpio` - This method needs to borrow the GPIO-C.
+/// * `state` - true to turn on the LED, false to turn off.
+fn set_led_red(gpio: &stm32f215::GPIOC, state: bool) {
+    gpio.odr.modify(|_, w| w.odr13().bit(state));
 }
 
 /// Toggle the red LED on or off.
-/// `peripherals` - This method needs to borrow the peripherals.
-/// `state` - true to turn on the LED, false to turn off.
-fn set_led_green(peripherals: &stm32f215::Peripherals, state: bool) {
-    peripherals.GPIOC.odr.modify(|_, w| w.odr14().bit(state));
+/// # Arguments
+/// * `gpio` - This method needs to borrow the GPIO-C.
+/// * `state` - true to turn on the LED, false to turn off.
+fn set_led_green(gpio: &stm32f215::GPIOC, state: bool) {
+    gpio.odr.modify(|_, w| w.odr14().bit(state));
 }
 
 /// Enable or disable on-board 15 V regulator.
-/// `peripherals` - This method needs to borrow the peripherals.
-/// `state` - true to turn on the regulator, false to turn off.
-fn set_15v_regulator(peripherals: &stm32f215::Peripherals, state: bool) {
-    peripherals.GPIOB.odr.modify(|_, w| w.odr11().bit(state));
+/// # Arguments
+/// * `gpio` - This method needs to borrow the GPIO-B.
+/// * `state` - true to turn on the regulator, false to turn off.
+fn set_15v_regulator(gpio: &stm32f215::GPIOB, state: bool) {
+    gpio.odr.modify(|_, w| w.odr11().bit(state));
 }
 
 /// Approximated delay function. Precise enough for what we need to do...
+/// # Arguments
+/// * `duration` - The number of loops to wait for delaying.
 #[inline(never)]
 fn delay_ms(duration: u32) {
     // Estimated duration for each loop: 7 clock cycles.
@@ -84,8 +89,9 @@ fn delay_ms(duration: u32) {
 
 /// Enable or disable very-high voltage generation by enabling or disabling the
 /// PWM output and the on-board 15 V generator.
-/// `peripherals` - This method needs to borrow the peripherals.
-/// `state` - true to enable, false to disable.
+/// # Arguments
+/// * `peripherals` - This method needs to borrow the peripherals.
+/// * `state` - true to enable, false to disable.
 fn set_high_voltage_generator(peripherals: &stm32f215::Peripherals, state: bool) {
     // When PWM if off, it seems the output pin is left floating. This is not
     // good because charges will accumulate on the gate of the charge pump
@@ -107,51 +113,50 @@ fn set_high_voltage_generator(peripherals: &stm32f215::Peripherals, state: bool)
 
 /// Configure PWM parameters for high voltage generation. If the parameters are
 /// invalid, this method may panic.
-/// `peripherals` - This method needs to borrow the peripherals.
-/// `period` - Maximum counter value to the timer. Defines the period of the
+/// # Arguments
+/// * `tim1` - This method needs to borrow the timer.
+/// * `period` - Maximum counter value to the timer. Defines the period of the
 ///     PWM.
-/// `width` - Comparator value for the counter. Defines the PWM positive pulse
+/// * `width` - Comparator value for the counter. Defines the PWM positive pulse
 ///     width.
-fn set_pwm_parameters(
-    peripherals: &stm32f215::Peripherals,
-    period: u16,
-    width: u16,
-) -> Result<(), ()> {
+fn set_pwm_parameters(tim1: &stm32f215::TIM1, period: u16, width: u16) -> Result<(), ()> {
     if width > period {
         return Err(());
     }
     if period == 0 {
         return Err(());
     }
-    let tim1 = &peripherals.TIM1;
     tim1.arr.write(|w| w.arr().bits(period - 1));
     tim1.ccr1.write(|w| w.ccr().bits(width));
     Ok(())
 }
 
 /// Perform software shoot.
-/// `peripherals` - This method needs to borrow the peripherals.
-/// `duration` - Pulse duration, in number of program loop.
-fn software_shoot(peripherals: &stm32f215::Peripherals, duration: u16) {
-    let gpioa = &peripherals.GPIOA;
-    gpioa.odr.modify(|_, w| w.odr13().set_bit());
+/// # Arguments
+/// * `gpio` - This method needs to borrow the GPIO-A.
+/// * `duration` - Pulse duration, in number of program loop.
+fn software_shoot(gpio: &stm32f215::GPIOA, duration: u16) {
+    gpio.odr.modify(|_, w| w.odr13().set_bit());
     for _ in 0..duration {
         cortex_m::asm::nop();
     }
-    gpioa.odr.modify(|_, w| w.odr13().clear_bit());
+    gpio.odr.modify(|_, w| w.odr13().clear_bit());
 }
 
 /// Configure internal Flash memory interface.
 /// This changes the Flash latency to be compatible with PLL settings.
-fn setup_flash(peripherals: &stm32f215::Peripherals) {
+/// # Arguments
+/// * `flash` - This method needs to borrow the flash register
+fn setup_flash(flash: &stm32f215::FLASH) {
     unsafe {
-        peripherals.FLASH.acr.modify(|_, w| w.latency().bits(2));
+        flash.acr.modify(|_, w| w.latency().bits(2));
     }
 }
 
 /// Configure PLL
-fn setup_pll(peripherals: &stm32f215::Peripherals) {
-    let rcc = &peripherals.RCC;
+/// # Arguments
+/// * `rcc` - This method needs to borrow the Reset and clock control register
+fn setup_pll(rcc: &stm32f215::RCC) {
     // Disable PLL
     rcc.cr.modify(|_, w| w.pllon().clear_bit());
     // HSI = 16 MHz
@@ -186,14 +191,15 @@ pub extern "C" fn _start() -> ! {
     }
 
     let peripherals = stm32f215::Peripherals::take().unwrap();
-    setup_flash(&peripherals);
-    setup_pll(&peripherals);
+    setup_flash(&peripherals.FLASH);
+    let rcc = &peripherals.RCC;
+    setup_pll(rcc);
 
-    peripherals.RCC.apb2enr.write(|w| w.usart1en().set_bit());
+    rcc.apb2enr.write(|w| w.usart1en().set_bit());
     // USART1 uses PA9 for TX and PA10 for RX.
     // LEDs are connected to PC13 and PC14.
     // Enable clock for PORT A, PORT B and PORT C peripherals.
-    peripherals.RCC.ahb1enr.write(|w| {
+    rcc.ahb1enr.write(|w| {
         w.gpioaen()
             .set_bit()
             .gpioben()
@@ -205,7 +211,7 @@ pub extern "C" fn _start() -> ! {
         .GPIOC
         .moder
         .modify(|_, w| w.moder13().output().moder14().output());
-    set_15v_regulator(&peripherals, true);
+    set_15v_regulator(&peripherals.GPIOB, true);
     peripherals.GPIOB.moder.write(|w| w.moder11().output());
 
     // Configure UART1
@@ -248,8 +254,8 @@ pub extern "C" fn _start() -> ! {
     gpioa.moder.modify(|_, w| w.moder13().output());
 
     // Give some time for the FT232 to boot-up.
-    set_led_green(&peripherals, false);
-    set_led_red(&peripherals, true);
+    set_led_green(&peripherals.GPIOC, false);
+    set_led_red(&peripherals.GPIOC, true);
     delay_ms(500);
 
     // System timer to track time between two controls.
@@ -274,7 +280,7 @@ pub extern "C" fn _start() -> ! {
     peripherals.RCC.apb2enr.modify(|_, w| w.tim1en().set_bit());
     let tim1 = &peripherals.TIM1;
     tim1.cr1.write(|w| w.cen().set_bit());
-    set_pwm_parameters(&peripherals, current_period, current_width).unwrap();
+    set_pwm_parameters(tim1, current_period, current_width).unwrap();
     tim1.ccmr1_output().write(|w| w.oc1m().pwm_mode1());
     tim1.ccer.write(|w| w.cc1e().set_bit());
     gpioa.ospeedr.modify(|_, w| w.ospeedr8().very_high_speed());
@@ -301,7 +307,9 @@ pub extern "C" fn _start() -> ! {
 
         if adc_ctrl.needs_control(now) {
             current_width = adc_ctrl.next_control_output(adc_result, now);
-            set_pwm_parameters(&peripherals, current_period, current_width).unwrap();
+            if current_width < current_period {
+                set_pwm_parameters(tim1, current_period, current_width).unwrap();
+            }
         }
         if usart1_has_data() {
             let command_byte: u8 = usart1.rx();
@@ -323,7 +331,7 @@ pub extern "C" fn _start() -> ! {
                     current_period = usart1.rx();
                     current_width = usart1.rx();
                     usart1.tx(
-                        match set_pwm_parameters(&peripherals, current_period, current_width) {
+                        match set_pwm_parameters(tim1, current_period, current_width) {
                             Ok(_) => command_byte,
                             Err(_) => !command_byte,
                         },
@@ -332,7 +340,7 @@ pub extern "C" fn _start() -> ! {
                 0x04 => {
                     // Command to perform a software shoot.
                     let duration: u16 = usart1.rx();
-                    software_shoot(&peripherals, duration);
+                    software_shoot(&peripherals.GPIOA, duration);
                     usart1.tx(command_byte);
                 }
                 0x05 => {
@@ -403,7 +411,7 @@ pub extern "C" fn _start() -> ! {
             }
         }
         let danger: bool = (adc_result >= 67) || high_voltage_enabled;
-        set_led_red(&peripherals, danger);
-        set_led_green(&peripherals, !danger);
+        set_led_red(&peripherals.GPIOC, danger);
+        set_led_green(&peripherals.GPIOC, !danger);
     }
 }
