@@ -26,8 +26,12 @@ impl ADCControl {
         // Updates the last control time and requests for next control value from PID
         self.last_control = ticks;
         // The PID object will give a value between -output_limit and output_limit
-        return (self.pid.next_control_output(adc_result as f32).output + self.pid.output_limit)
-            as u16;
+        // This seems to be broken. Sometimes the value gets out of output_limit bounds.
+        let mut output = self.pid.next_control_output(adc_result as f32).output;
+        let sig = if output >= 0.0f32 { 1.0 } else { -1.0 };
+        let abs = output * sig;
+        output = self.pid.output_limit.min(abs) * sig;
+        return (output + self.pid.output_limit) as u16;
     }
 
     pub fn needs_control(&self, ticks: u64) -> bool {
