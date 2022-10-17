@@ -90,7 +90,7 @@ impl TxRx<u64> for USART1 {
     fn rx(&self) -> u64 {
         let h: u32 = self.rx();
         let l: u32 = self.rx();
-        (h as u64) << 32 + l as u64
+        ((h as u64) << 32) + l as u64
     }
     /// Transmit a 64-bits word from USART1.
     /// `value` - Double Word to be transmitted.

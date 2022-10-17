@@ -1,6 +1,5 @@
 use crate::Flash;
 use crate::SystemTimer;
-
 use pid::Pid;
 
 pub struct ADCControl {
@@ -65,7 +64,7 @@ impl ADCControl {
             self.pid.kd = f32::from_bits(address.offset(3).read());
             let h = address.offset(4).read() as u64;
             let l = address.offset(5).read() as u64;
-            self.control_ticks = h << 32 + l;
+            self.control_ticks = (h << 32) + l;
         }
     }
 
