@@ -81,12 +81,6 @@ class SiliconToaster:
         """
         raw = self.read_voltage_raw()
         v = self.to_volt(raw)
-        # Checks the software limitation
-        if self._software_limit is not None and v > self._software_limit:
-            self.off()
-            raise RuntimeWarning(
-                f"VOLTAGE IS TOO HIGH {v}V > {self._software_limit}V. Turning off."
-            )
         return v
 
     def on_off(self, enable: bool):
@@ -125,14 +119,6 @@ class SiliconToaster:
         command += duration.to_bytes(2, "big", signed=False)
         self.ser.write(command)
         assert self.ser.read(1) == b"\x04"
-
-    @property
-    def software_limit(self) -> Optional[float]:
-        return self._software_limit
-
-    @software_limit.setter
-    def software_limit(self, value: Optional[float]):
-        self._software_limit = value
 
     def get_voltage_mapping(self):
         file_dir = os.path.dirname(os.path.realpath(__file__))
