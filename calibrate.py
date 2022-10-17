@@ -6,7 +6,7 @@ import quicklog
 
 log = quicklog.Log()
 toaster = SiliconToaster("/dev/ttyUSB0")
-toaster.on()
+toaster.on_off(True)
 avg_count = 100
 
 for width in range(1, 40):
