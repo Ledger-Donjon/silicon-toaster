@@ -1,5 +1,4 @@
 #!/usr/bin/python3
-
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
@@ -102,89 +101,258 @@ class VoltageViewer(QWidget):
 class Window(QWidget):
     def __init__(self, dev):
         super().__init__()
-        vbox = QVBoxLayout()
-        vbox.setContentsMargins(4, 4, 4, 4)
-        self.setLayout(vbox)
-        hbox = QHBoxLayout()
-        vbox.addLayout(hbox)
 
-        w = QPushButton("On")
-        hbox.addWidget(w)
-        w.clicked.connect(self.on)
 
-        w = QPushButton("Off")
-        hbox.addWidget(w)
-        w.clicked.connect(self.off)
-
-        w = self.period_edit = QLineEdit("800")
-        w.setToolTip("PWM: Period")
-        w.setMaximumWidth(50)
-        w.setValidator(QIntValidator(1, 50000))
-        hbox.addWidget(w)
-
-        w = self.width_edit = QLineEdit("5")
-        w.setToolTip("PWM: Width")
-        w.setMaximumWidth(50)
-        w.setValidator(QIntValidator(1, 100))
-        hbox.addWidget(w)
-
-        w = QPushButton("Apply")
-        hbox.addWidget(w)
-        w.clicked.connect(self.set_pwm_settings)
-
-        w = self.shoot_edit = QLineEdit("10")
-        w.setToolTip("Shoot duration")
-        w.setMaximumWidth(50)
-        w.setValidator(QIntValidator(1, 0x10000))
-        hbox.addWidget(w)
-
-        w = QPushButton("Shoot")
-        hbox.addWidget(w)
-        w.clicked.connect(self.shoot)
-
-        w = self.viewer = VoltageViewer()
-        vbox.addWidget(w)
+        shortcut = QShortcut(Qt.CTRL + Qt.Key_S, self)
+        shortcut.activated.connect(self.shoot)
 
         if isinstance(dev, SiliconToaster):
             self.silicon_toaster = dev
         else:
             self.silicon_toaster = SiliconToaster(dev)
-            self.silicon_toaster.off()
+            self.silicon_toaster.on_off(False)
             self.silicon_toaster.set_pwm_settings(800, 5)
 
+        vbox = QVBoxLayout()
+        vbox.setContentsMargins(4, 4, 4, 4)
+        vbox.setSpacing(4)
+        self.setLayout(vbox)
+        hbox = QHBoxLayout()
+        hbox.setContentsMargins(0, 0, 0, 0)
+        hbox.setSpacing(2)
+        vbox.addLayout(hbox)
+
+        self.on_off_button = w = QPushButton("Activate")
+        w.setCheckable(True)
+        hbox.addWidget(w)
+        w.toggled.connect(self.on_off)
+
+        hbox.addStretch()
+
+        hbox.addWidget(QLabel("Set Point"))
+        w = self.voltage_destination = QDoubleSpinBox()
+        w.setValue(0.0)
+        w.setMinimum(0.0)
+        w.setMaximum(1500.0)
+        w.setSingleStep(5)
+        w.setAlignment(Qt.AlignTrailing)
+        w.setToolTip("Target")
+        w.setMaximumWidth(100)
+        w.valueChanged.connect(self.set_voltage_destination)
+        w.setSuffix(" V")
+        hbox.addWidget(w)
+
+        hbox.addStretch()
+
+        w = self.shoot_edit = QSpinBox()
+        w.setValue(10)
+        w.setMaximum(0x10000)
+        w.setMinimum(1)
+        w.setToolTip("Shoot duration (in number of NOP-loop)")
+        w.setMaximumWidth(50)
+        hbox.addWidget(w)
+        w = QPushButton("Shoot")
+        hbox.addWidget(w)
+        w.clicked.connect(self.shoot)
+
+        self.advanced = QWidget()
+        vbox.addWidget(self.advanced)
+        self.advanced.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+
+        w = QPushButton("...")
+        w.setCheckable(True)
+        w.toggled.connect(self.advanced.setVisible)
+        hbox.addStretch()
+        hbox.addWidget(w)
+
+        vboxa = QVBoxLayout()
+        vboxa.setContentsMargins(0, 0, 0, 0)
+        self.advanced.setLayout(vboxa)
+        hbox = QHBoxLayout()
+        hbox.setContentsMargins(0, 0, 0, 0)
+        vboxa.addLayout(hbox)
+
+        hbox2 = QHBoxLayout()
+        hbox.addLayout(hbox2)
+        hbox2.setContentsMargins(0, 0, 0, 0)
+        w = self.period_label = QLabel("")
+        w.setToolTip("PWM: Period")
+        w.setMinimumWidth(75)
+        hbox2.addWidget(w)
+        w = self.width_label = QLabel("")
+        w.setToolTip("PWM: Width")
+        w.setMinimumWidth(75)
+        hbox2.addWidget(w)
+
+        hbox2 = QHBoxLayout()
+        hbox.addLayout(hbox2)
+        w = QLabel("Kp")
+        hbox2.addWidget(w)
+        w = self.pid_kp = QDoubleSpinBox()
+        w.setMaximum(1000.0)
+        hbox2.addWidget(w)
+
+        w = QLabel("Ki")
+        hbox2.addWidget(w)
+        w = self.pid_ki = QDoubleSpinBox()
+        w.setMaximum(1000.0)
+        hbox2.addWidget(w)
+
+        w = QLabel("Kd")
+        hbox2.addWidget(w)
+        w = self.pid_kd = QDoubleSpinBox()
+        w.setMaximum(1000.0)
+        hbox2.addWidget(w)
+
+        hbox2 = QHBoxLayout()
+        hbox.addLayout(hbox2)
+        hbox2.addWidget(QLabel("Control ticks"))
+        w = self.timetick = QSpinBox()
+        w.setToolTip(
+            "Number of ticks between two samplings"
+            "(Frequency is 8047640 ticks per second)"
+        )
+        hbox2.addWidget(w)
+        w.setMinimum(1)
+        w.setMaximum(8047640)
+
+        w = self.flash = QCheckBox("In Flash")
+        hbox.addWidget(w)
+
+        hbox = QHBoxLayout()
+        hbox.setContentsMargins(0, 0, 0, 0)
+        vboxa.addLayout(hbox)
+        vboxa.setContentsMargins(0, 0, 0, 0)
+        vboxa.setSpacing(0)
+
+        hbox2 = QHBoxLayout()
+        hbox.addLayout(hbox2)
+        hbox2.setContentsMargins(0, 0, 0, 0)
+        w = self.p_limit = QLabel("")
+        w.setToolTip("P Limit")
+        w.setMinimumWidth(75)
+        hbox2.addWidget(w)
+        w = self.i_limit = QLabel("")
+        w.setToolTip("I Limit")
+        w.setMinimumWidth(75)
+        hbox2.addWidget(w)
+        w = self.d_limit = QLabel("")
+        w.setToolTip("D Limit")
+        w.setMinimumWidth(75)
+        hbox2.addWidget(w)
+        w = self.output_limit = QLabel("")
+        w.setToolTip("Output Limit")
+        w.setMinimumWidth(75)
+        hbox2.addWidget(w)
+        w = self.setpoint_label = QLabel("")
+        w.setToolTip("RAW Setpoint value")
+        w.setMinimumWidth(75)
+        hbox.addWidget(w)
+        w = self.lastcontrol_label = QLabel("")
+        w.setToolTip("Last control timestamp tick")
+        w.setMinimumWidth(75)
+        hbox.addWidget(w)
+        w = QPushButton("Refresh")
+        w.clicked.connect(self.refresh_pid_ex)
+        hbox.addWidget(w)
+
+        self.advanced.setVisible(False)
+
+        self.refresh_pid()
+        self.refresh_pid_ex()
+        self.pid_kp.valueChanged.connect(self.pid_changed)
+        self.pid_ki.valueChanged.connect(self.pid_changed)
+        self.pid_kd.valueChanged.connect(self.pid_changed)
+        self.timetick.valueChanged.connect(self.pid_changed)
+
+        w = self.viewer = VoltageViewer()
+        vbox.addWidget(w)
+
+        self.get_voltage_destination()
+        self.get_pwm_settings()
+
         timer = self.timer = QTimer()
-        timer.setInterval(25)
+        timer.setInterval(50)
         timer.timeout.connect(self.refresh_voltage)
         timer.start()
 
+    def refresh_pid(self):
+        kp, ki, kd, timetick = self.silicon_toaster.get_adc_control_pid(
+            self.flash.isChecked()
+        )
+        self.pid_kp.setValue(kp)
+        self.pid_ki.setValue(ki)
+        self.pid_kd.setValue(kd)
+        self.timetick.setValue(timetick)
+
+    def pid_changed(self):
+        self.silicon_toaster.set_adc_control_pid(
+            self.pid_kp.value(),
+            self.pid_ki.value(),
+            self.pid_kd.value(),
+            self.timetick.value(),
+            self.flash.isChecked(),
+        )
+
+    def refresh_pid_ex(self):
+        r = self.silicon_toaster.get_adc_control_pid_ex()
+        kp_limit, ki_limit, kd_limit, output_limit, set_point, last_control = r
+        self.p_limit.setText(f"{kp_limit}")
+        self.i_limit.setText(f"{ki_limit}")
+        self.d_limit.setText(f"{kd_limit}")
+        self.output_limit.setText(f"{output_limit}")
+        self.setpoint_label.setText(f"{set_point}")
+        self.lastcontrol_label.setText(f"{last_control}")
+
     def refresh_voltage(self):
+        """Get the current value of the voltage and refresh"""
         v = self.silicon_toaster.read_voltage()
         self.viewer.add_data(v)
         self.viewer.repaint()
+        self.get_pwm_settings()
 
-    def on(self):
-        """Turn-on high voltage generation."""
-        self.silicon_toaster.on()
-
-    def off(self):
-        """Turn-off high voltage generation."""
-        self.silicon_toaster.off()
+    def on_off(self, value: bool):
+        """Turn-on or off high voltage generation."""
+        self.silicon_toaster.on_off(value)
 
     def set_pwm_settings(self):
         """Reconfigure device PWM settings from UX input."""
-        period, ok1 = QLocale().toInt(self.period_edit.text())
-        width, ok2 = QLocale().toInt(self.width_edit.text())
+        period, ok1 = QLocale().toInt(self.period_label.text())
+        width, ok2 = QLocale().toInt(self.width_label.text())
         if ok1 and ok2:
             self.silicon_toaster.set_pwm_settings(period, width)
 
+    def get_pwm_settings(self):
+        """Get PWM settings from device and update UX."""
+        period, width = self.silicon_toaster.get_pwm_settings()
+        self.period_label.setText(QLocale().toString(period))
+        self.width_label.setText(QLocale().toString(width))
+        return period, width
+
+    def set_voltage_destination(self):
+        """Set the main ADC control parameters according to the value of the UI"""
+        destination = float(self.voltage_destination.value())
+        self.viewer.vdest = destination
+        self.viewer.repaint()
+        self.silicon_toaster.set_voltage_setpoint(destination)
+
+    def get_voltage_destination(self):
+        """Get the main ADC control parameters from Silicon toaster and updates the UI"""
+        destination = self.silicon_toaster.get_voltage_setpoint()
+        self.voltage_destination.valueChanged.disconnect()
+        self.viewer.vdest = destination
+        self.viewer.repaint()
+        self.voltage_destination.setValue(destination)
+        self.voltage_destination.valueChanged.connect(self.set_voltage_destination)
+
     def shoot(self):
-        """Software shoot with duration from UX."""
+        """Software shoot with duration from UI."""
         duration, ok = QLocale().toInt(self.shoot_edit.text())
         if ok:
             self.silicon_toaster.software_shoot(duration)
 
     def closeEvent(self, event):
-        self.silicon_toaster.off()
+        self.silicon_toaster.on_off(False)
 
 
 if __name__ == "__main__":
