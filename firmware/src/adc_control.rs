@@ -1,3 +1,6 @@
+//! ADC control structure to manage the targeted value of the ADC, using the system timer, and
+//! a Pid.
+
 use crate::Flash;
 use crate::SystemTimer;
 use pid::Pid;

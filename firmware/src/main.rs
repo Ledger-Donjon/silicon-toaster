@@ -15,6 +15,7 @@ use system_timer::SystemTimer;
 use txrx_utils::{handler_usart1, usart1_has_data, TxRx};
 
 #[panic_handler]
+/// Panic handler: turns the high voltage off and make the red led blinking
 fn panic(_: &PanicInfo) -> ! {
     unsafe {
         // In case of panic, the peripherals may have already been taken, and we
@@ -58,7 +59,7 @@ fn set_led_red(gpio: &stm32f215::GPIOC, state: bool) {
     gpio.odr.modify(|_, w| w.odr13().bit(state));
 }
 
-/// Toggle the red LED on or off.
+/// Toggle the green LED on or off.
 /// # Arguments
 /// * `gpio` - This method needs to borrow the GPIO-C.
 /// * `state` - true to turn on the LED, false to turn off.

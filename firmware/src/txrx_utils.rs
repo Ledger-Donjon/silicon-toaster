@@ -1,3 +1,6 @@
+//! This module is used to manage the USART1 peripheral, and contain utility function to receive and
+//! transmit data.
+
 use stm32f2::stm32f215::{Peripherals, USART1};
 
 // USART1 Queue

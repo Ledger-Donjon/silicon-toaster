@@ -1,3 +1,9 @@
+//! This module is used to manage the STM32F2 Flash for permanent storage of configuration.
+//! It is based on [`Flash programming manual`]
+//!
+//!
+//! [`Flash programming manual`]: https://www.st.com/resource/en/programming_manual/pm0059-stm32f205215-stm32f207217-flash-programming-manual-stmicroelectronics.pdf
+
 use stm32f2::stm32f215;
 
 pub trait PSIZE {

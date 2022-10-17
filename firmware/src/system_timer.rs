@@ -1,3 +1,5 @@
+//! This module is used to manage the STM32F2 SysTick to get a system tick counter.
+
 use stm32f2::stm32f215;
 
 pub struct SystemTimer<'a> {
