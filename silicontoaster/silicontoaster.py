@@ -47,7 +47,6 @@ class SiliconToaster:
             2.57379247e00,
         ]
         self._software_limit = None
-        self.get_voltage_mapping()
 
     @staticmethod
     def convert(value: Union[float, int], calibration: list[float]) -> float:
@@ -119,25 +118,6 @@ class SiliconToaster:
         command += duration.to_bytes(2, "big", signed=False)
         self.ser.write(command)
         assert self.ser.read(1) == b"\x04"
-
-    def get_voltage_mapping(self):
-        file_dir = os.path.dirname(os.path.realpath(__file__))
-        try:
-            f = open(os.path.join(file_dir, "calibration_voltage.log"))
-        except OSError:
-            file_dir = os.path.dirname(file_dir)
-            f = open(os.path.join(file_dir, "calibration_voltage.log"))
-        periods = []
-        widths = []
-        voltages = []
-        for line in f.readlines():
-            record = eval(line)
-            periods.append(int(record["period"]))
-            widths.append(int(record["width"]))
-            voltages.append(float(record["voltage"]))
-        self.voltage_mapping = LinearNDInterpolator(
-            numpy.dstack((periods, widths))[0], voltages
-        )
 
     def get_ticks(self) -> int:
         """
