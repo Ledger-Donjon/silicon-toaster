@@ -17,6 +17,7 @@ class VoltageViewer(QWidget):
         self.hist_size = 400
         self.vmax = 1500
         self.vsafe = 1000
+        self.vdest = 0.0
         self.avg_samples = self.hist_size
 
     def paintEvent(self, event):
@@ -31,7 +32,9 @@ class VoltageViewer(QWidget):
 
         y0 = self.w2sy(self.vsafe)
         y1 = self.w2sy(self.vmax)
-        painter.fillRect(0, int(y0), width, int(y1 - y0), QBrush(QColor(70, 20, 0), Qt.BDiagPattern))
+        painter.fillRect(
+            0, int(y0), width, int(y1 - y0), QBrush(QColor(70, 20, 0), Qt.BDiagPattern)
+        )
 
         for i in range(0, self.vmax, 100):
             if i < self.vsafe:
@@ -40,6 +43,10 @@ class VoltageViewer(QWidget):
                 painter.setPen(QPen(QColor(70, 20, 0)))
             y = round(self.w2sy(i)) - 0.5
             painter.drawLine(QLineF(0, y, width, y))
+
+        painter.setPen(QPen(Qt.darkYellow))
+        y = round(self.w2sy(int(self.vdest))) - 0.5
+        painter.drawLine(QLineF(0, y, width, y))
 
         painter.setPen(QPen(Qt.yellow))
         for i in range(len(self.data) - 1):
