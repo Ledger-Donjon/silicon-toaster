@@ -133,6 +133,7 @@ class Window(QWidget):
         w.setValue(0.0)
         w.setMinimum(0.0)
         w.setMaximum(1500.0)
+        w.setDecimals(0)
         w.setSingleStep(5)
         w.setAlignment(Qt.AlignTrailing)
         w.setToolTip("Target")
@@ -361,5 +362,6 @@ if __name__ == "__main__":
     else:
         dev = sys.argv[1]
     window = Window(dev)
+    window.setWindowTitle("Silicon Toaster")
     window.show()
     sys.exit(app.exec_())
