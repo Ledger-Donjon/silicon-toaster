@@ -8,9 +8,9 @@ x = []
 y = []
 
 plt.figure()
-for record in quicklog.read_log('calibration-800.log'):
-    x.append(float(record['value']))
-    y.append(float(record['voltage']))
+for record in quicklog.read_log("calibration-800.log"):
+    x.append(float(record["value"]))
+    y.append(float(record["voltage"]))
 
 plt.plot(x, y)
 
@@ -28,11 +28,11 @@ y = []
 for xx in x:
     v = 0
     for i, c in enumerate(coefs):
-        v += c * xx**(len(coefs)-i-1)
+        v += c * xx ** (len(coefs) - i - 1)
     y.append(v)
 
 plt.plot(x, y)
-#plt.plot(x, poly(x))
+# plt.plot(x, poly(x))
 
 
 y = np.linspace(0, max(y), 100)
@@ -40,10 +40,10 @@ x = []
 for yy in y:
     v = 0
     for i, c in enumerate(coefs_inv):
-        v += c * yy**(len(coefs_inv)-i-1)
+        v += c * yy ** (len(coefs_inv) - i - 1)
     x.append(v)
 
 plt.figure()
 plt.plot(x, y)
-#plt.plot(x, poly_inv(x))
+# plt.plot(x, poly_inv(x))
 plt.show()

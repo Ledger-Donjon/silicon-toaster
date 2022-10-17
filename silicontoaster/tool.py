@@ -102,7 +102,6 @@ class Window(QWidget):
     def __init__(self, dev):
         super().__init__()
 
-
         shortcut = QShortcut(Qt.CTRL + Qt.Key_S, self)
         shortcut.activated.connect(self.shoot)
 

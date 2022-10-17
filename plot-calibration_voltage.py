@@ -27,13 +27,11 @@ plt.figure()
 ax = plt.axes(projection="3d")
 s = LinearNDInterpolator(np.dstack((x, y))[0], z)
 
-X = np.linspace(np.min(x),np.max(x), 70)
-Y = np.linspace(np.min(y),np.max(y), 70)
-grid = np.mgrid[np.min(x):np.max(x):70j,
-                np.min(y):np.max(y):70j]
+X = np.linspace(np.min(x), np.max(x), 70)
+Y = np.linspace(np.min(y), np.max(y), 70)
+grid = np.mgrid[np.min(x) : np.max(x) : 70j, np.min(y) : np.max(y) : 70j]
 Z = s(grid.reshape(2, -1).T)
 X = grid[0].flatten()
 Y = grid[1].flatten()
 surf = ax.plot_trisurf(X, Y, Z, cmap="cool")
 plt.show()
-

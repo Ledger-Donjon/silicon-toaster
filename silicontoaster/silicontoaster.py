@@ -224,4 +224,3 @@ class SiliconToaster:
 
     def __del__(self):
         self.on_off(False)
-

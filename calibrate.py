@@ -11,8 +11,8 @@ avg_count = 100
 
 for width in range(1, 40):
     toaster.set_pwm_settings(1600, width)
-    input('Waiting...')
-    print('Measuring...')
+    input("Waiting...")
+    print("Measuring...")
     acc = 0
     for i in range(avg_count):
         acc += toaster.read_voltage_raw()
@@ -22,4 +22,3 @@ for width in range(1, 40):
     record = {"value": avg, "voltage": v}
     log.append(record)
     log.flush()
-
