@@ -340,18 +340,13 @@ pub extern "C" fn _start() -> ! {
                     usart1.tx(sys_timer.get_ticks());
                 }
                 0x06 => {
-                    // Command to get the ADC Control parameters.
-                    usart1.tx(adc_ctrl.enabled);
+                    // Command to get the ADC Control set point.
                     usart1.tx(adc_ctrl.setpoint());
                 }
                 0x07 => {
-                    // Command to set the ADC Control parameters.
-                    let enabled: u8 = usart1.rx();
-                    adc_ctrl.enabled = enabled != 0;
-                    if adc_ctrl.enabled {
-                        // Force to use 800 as PWM period.
-                        current_period = 800;
-                    }
+                    // Command to set the ADC Control set point
+                    // Force to use 800 as PWM period.
+                    current_period = 800;
                     adc_ctrl.set_setpoint(usart1.rx());
                 }
                 0x08 => {
