@@ -17,19 +17,20 @@ class SiliconToaster:
             # Try to find automatically the device
             possible_ports = []
             for port in serial.tools.list_ports.comports():
-                # USB description string can be 'Scaffold', with uppercase 'S'.
-                if (port.product is not None) and (
-                    (sn is None) or (port.serial_number == sn)
+                # USB description string is 'SiliconToaster'.
+                if ((port.product is not None)
+                    and (port.product == "SiliconToaster")
+                    and ((sn is None) or (port.serial_number == sn))
                 ):
                     possible_ports.append(port)
             if len(possible_ports) > 1:
                 raise RuntimeError(
-                    "Multiple Silicon Toaster devices found! I don't know which one to use."
+                    "Multiple SiliconToaster devices found! I don't know which one to use."
                 )
             elif len(possible_ports) == 1:
                 dev = possible_ports[0].device
             else:
-                raise RuntimeError("No Silicon Toaster device found")
+                raise RuntimeError("No SiliconToaster device found")
 
         self.ser = serial.Serial(dev, 9600)
         self.calibration_raw_to_v = [
