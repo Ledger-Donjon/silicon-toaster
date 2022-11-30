@@ -2,9 +2,9 @@ from setuptools import setup, find_packages
 
 setup(
     name="silicon-toaster",
-    version="1.1",
+    version="1.2",
     packages=["silicontoaster"],
-    install_requires=["pyserial"],
+    install_requires=["pyserial", "hug"],
     url="",
     license="GNU LGPL",
     author="Olivier Hérivaux",

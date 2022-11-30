@@ -1,11 +1,8 @@
 #!/usr/bin/python3
 import struct
-from typing import Optional, Union
+from typing import Union
 import serial
 import serial.tools.list_ports
-import os
-import numpy
-from scipy.interpolate import LinearNDInterpolator
 
 
 class SiliconToaster:
@@ -48,6 +45,7 @@ class SiliconToaster:
             2.57379247e00,
         ]
         self._software_limit = None
+        self._last_voltage = 0.0
 
     @staticmethod
     def convert(value: Union[float, int], calibration: list[float]) -> float:
@@ -81,6 +79,7 @@ class SiliconToaster:
         """
         raw = self.read_voltage_raw()
         v = self.to_volt(raw)
+        self._last_voltage = v
         return v
 
     def on_off(self, enable: bool):
