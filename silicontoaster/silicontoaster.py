@@ -25,12 +25,12 @@ class SiliconToaster:
                     possible_ports.append(port)
             if len(possible_ports) > 1:
                 raise RuntimeError(
-                    "Multiple Silicon Toaster devices found! I don't know which one to use."
+                    "Multiple SiliconToaster devices found! I don't know which one to use."
                 )
             elif len(possible_ports) == 1:
                 dev = possible_ports[0].device
             else:
-                raise RuntimeError("No Silicon Toaster device found")
+                raise RuntimeError("No SiliconToaster device found")
 
         self.ser = serial.Serial(dev, 9600)
         self.calibration_raw_to_v = [

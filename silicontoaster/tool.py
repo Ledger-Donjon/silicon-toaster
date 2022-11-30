@@ -362,6 +362,6 @@ if __name__ == "__main__":
     else:
         dev = sys.argv[1]
     window = Window(dev)
-    window.setWindowTitle("Silicon Toaster")
+    window.setWindowTitle("SiliconToaster")
     window.show()
     sys.exit(app.exec_())
