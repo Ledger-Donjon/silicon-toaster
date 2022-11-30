@@ -17,9 +17,10 @@ class SiliconToaster:
             # Try to find automatically the device
             possible_ports = []
             for port in serial.tools.list_ports.comports():
-                # USB description string can be 'Scaffold', with uppercase 'S'.
-                if (port.product is not None) and (
-                    (sn is None) or (port.serial_number == sn)
+                # USB description string is 'SiliconToaster'.
+                if ((port.product is not None)
+                    and (port.product == "SiliconToaster")
+                    and ((sn is None) or (port.serial_number == sn))
                 ):
                     possible_ports.append(port)
             if len(possible_ports) > 1:
