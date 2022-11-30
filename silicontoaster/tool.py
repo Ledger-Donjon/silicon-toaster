@@ -358,7 +358,7 @@ class Window(QWidget):
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     if len(sys.argv) < 2:
-        dev = "/dev/ttyUSB0"
+        dev = None
     else:
         dev = sys.argv[1]
     window = Window(dev)
