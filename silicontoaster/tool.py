@@ -266,6 +266,11 @@ class Window(QWidget):
         w = QPushButton("Refresh")
         w.clicked.connect(self.refresh_pid_ex)
         hbox.addWidget(w)
+        w = self.adc_control_on_off_button = QPushButton("Activate ADCControl")
+        w.setCheckable(True)
+        hbox.addWidget(w)
+        w.toggled.connect(self.adc_control_on_off)
+        w.setChecked(self.silicon_toaster.adc_control_on_off())
 
         self.advanced.setVisible(False)
         self.advanced_PWM.setVisible(False)
@@ -312,6 +317,12 @@ class Window(QWidget):
         timer.setInterval(50)
         timer.timeout.connect(self.refresh_voltage)
         timer.start()
+
+    def adc_control_on_off(self, value: bool):
+        """Turn-on or off ADC Control."""
+        self.silicon_toaster.set_adc_control_on_off(value)
+        print("ADC Control is now", is_on := self.silicon_toaster.adc_control_on_off())
+        self.adc_control_on_off_button.setChecked(is_on)
 
     def refresh_pid(self):
         kp, ki, kd, timetick = self.silicon_toaster.get_adc_control_pid(
