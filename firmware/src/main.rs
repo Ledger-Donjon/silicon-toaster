@@ -24,13 +24,14 @@ fn panic(_: &PanicInfo) -> ! {
         // Here we just blink the red LED forever to indicate there is a
         // problem.
         let peripherals = stm32f215::Peripherals::steal();
+        let mut sys_timer = SystemTimer::new(&peripherals.STK);
         set_high_voltage_generator(&peripherals, false);
         set_led_green(&peripherals.GPIOC, false);
         loop {
             set_led_red(&peripherals.GPIOC, true);
-            delay_ms(250);
+            delay_ms(&mut sys_timer, 250);
             set_led_red(&peripherals.GPIOC, false);
-            delay_ms(250);
+            delay_ms(&mut sys_timer, 250);
         }
     }
 }
@@ -77,14 +78,14 @@ fn set_15v_regulator(gpio: &stm32f215::GPIOB, state: bool) {
 
 /// Approximated delay function. Precise enough for what we need to do...
 /// # Arguments
-/// * `duration` - The number of loops to wait for delaying.
+/// * `duration` - The time in ms we want to wait
 #[inline(never)]
-fn delay_ms(duration: u32) {
-    // Estimated duration for each loop: 7 clock cycles.
-    assert!(duration <= 0xffffffff / 64000);
-    let count: u32 = (duration * 64000) / 7;
-    for _ in 0..count {
-        cortex_m::asm::nop();
+fn delay_ms(sys_timer: &mut SystemTimer, duration: u32) {
+    let duration_in_ticks = (duration as u64) * SystemTimer::FREQ / 1000;
+    let start = sys_timer.get_ticks();
+    let mut now = start;
+    while (now - start) < duration_in_ticks {
+        now = sys_timer.get_ticks();
     }
 }
 
@@ -254,13 +255,13 @@ pub extern "C" fn _start() -> ! {
     gpioa.ospeedr.modify(|_, w| w.ospeedr13().very_high_speed());
     gpioa.moder.modify(|_, w| w.moder13().output());
 
-    // Give some time for the FT232 to boot-up.
-    set_led_green(&peripherals.GPIOC, false);
-    set_led_red(&peripherals.GPIOC, true);
-    delay_ms(500);
-
     // System timer to track time between two controls.
     let mut sys_timer = SystemTimer::new(&peripherals.STK);
+
+    // Give some time for the FT232 to boot-up.
+    set_led_green(&peripherals.GPIOC, true);
+    set_led_red(&peripherals.GPIOC, true);
+    delay_ms(&mut sys_timer, 500);
 
     // Variable to track last applied PWM parameters.
     let mut current_period: u16 = 800;
