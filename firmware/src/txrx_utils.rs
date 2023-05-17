@@ -2,10 +2,10 @@
 //! transmit data.
 
 use stm32f2::stm32f215::{Peripherals, USART1};
+use heapless::spsc::Queue;
 
 // USART1 Queue
-static mut USART1_QUEUE: heapless::spsc::Queue<u8, heapless::consts::U128> =
-    heapless::spsc::Queue(heapless::i::Queue::new());
+static mut USART1_QUEUE: Queue<u8, 128> = Queue::new();
 
 // Trait for transmitting and receiving data.
 pub trait TxRx<T> {

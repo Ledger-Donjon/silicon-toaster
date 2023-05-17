@@ -19,7 +19,10 @@ impl ADCControl {
             enabled: true,
             control_ticks: SystemTimer::FREQ / 1000, // ~1milliseconds
             last_control: 0,
-            pid: Pid::new(100.0, 0.0, 0.0, 200.0, 200.0, 200.0, 200.0, 0.0),
+            pid: *Pid::new(0.0, 200.0)
+            .p(100.0, 200.0)
+            .i(0.0, 200.0)
+            .d(0.0, 200.0)
         };
         adc.read_from_flash();
         adc
