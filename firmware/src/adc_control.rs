@@ -15,8 +15,9 @@ pub struct ADCControl {
 
 impl ADCControl {
     pub fn new() -> ADCControl {
+        // Create a PID with limits
         let mut adc = ADCControl {
-            enabled: true,
+            enabled: false,
             control_ticks: SystemTimer::FREQ / 1000, // ~1milliseconds
             last_control: 0,
             pid: *Pid::new(0.0, 200.0)
