@@ -318,6 +318,13 @@ class Window(QWidget):
         timer.timeout.connect(self.refresh_voltage)
         timer.start()
 
+        shortcut = QShortcut(Qt.CTRL + Qt.Key_R, self)
+        shortcut.activated.connect(lambda: self.timer.start(250))
+        shortcut = QShortcut(Qt.CTRL + Qt.Key_T, self)
+        shortcut.activated.connect(lambda: self.timer.start(50))
+        shortcut = QShortcut(Qt.CTRL + Qt.Key_Y, self)
+        shortcut.activated.connect(lambda: self.timer.stop())
+
     def adc_control_on_off(self, value: bool):
         """Turn-on or off ADC Control."""
         self.silicon_toaster.set_adc_control_on_off(value)
