@@ -206,5 +206,30 @@ class SiliconToaster:
         self.ser.write(command)
         assert self.ser.read(1) == b"\x0C"
 
+    def set_adc_control_on_off(self, enable: bool):
+        """
+        Turn on or off of the ADC Control.
+        :param enable: True or False to enable or disable the of the ADC Control.
+        """
+        command = b"\xAA" + (b"\1" if enable else b"\0")
+        self.ser.write(command)
+        assert self.ser.read(1) == b"\xAA"
+
+    def adc_control_on_off(self) -> bool:
+        """
+        Give information if ADC Control is enabled or not.
+        :param enable: True or False to enable or disable the of the ADC Control.
+        """
+        command = b"\xAB"
+        self.ser.write(command)
+        return self.ser.read(1) == b"\x01"
+
+    def panic(self):
+        """
+        Send an illegal command in order to enter in the panic()
+        """
+        command = b"\x77"
+        self.ser.write(command)
+        assert self.ser.read(1) == b"\x77"
     def __del__(self):
         self.on_off(False)

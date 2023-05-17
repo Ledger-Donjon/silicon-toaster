@@ -408,6 +408,16 @@ pub extern "C" fn _start() -> ! {
                     usart1.tx(adc_ctrl.pid.setpoint);
                     usart1.tx(adc_ctrl.last_control);
                 }
+                0xAA => {
+                    // Command to activate/deactivate the ADC Control.
+                    let value: u8 = usart1.rx();
+                    adc_ctrl.enabled = value == 1;
+                    usart1.tx(command_byte);
+                }
+                0xAB => {
+                    // Command to get the raw value obtained by the ADC.
+                    usart1.tx(adc_ctrl.enabled);
+                }
                 _ => {
                     // Unknown command. Panic!
                     panic!();
