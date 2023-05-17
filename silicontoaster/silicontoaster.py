@@ -231,5 +231,17 @@ class SiliconToaster:
         command = b"\x77"
         self.ser.write(command)
         assert self.ser.read(1) == b"\x77"
+
+    def adc_results(self) -> int:
+        """
+        Get values of ADC values passed to PID.
+        """
+        command = b"\xAC"
+        self.ser.write(command)
+        v = struct.unpack(">I", self.ser.read(4))[0]
+        print(v)
+        return struct.unpack(f">{v}H", self.ser.read(v*2))
+
+
     def __del__(self):
         self.on_off(False)
