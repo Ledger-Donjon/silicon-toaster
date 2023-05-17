@@ -145,6 +145,7 @@ class SiliconToaster:
         command = b"\x07"
         command += struct.pack(">H", self.to_raw(destination))
         self.ser.write(command)
+        assert self.ser.read(1) == b"\x07"
 
     def get_pwm_settings(self) -> tuple[int, int]:
         """
@@ -173,6 +174,7 @@ class SiliconToaster:
         command = b"\x0B"
         command += struct.pack(">?3fQ", to_flash, kp, ki, kd, control_ticks)
         self.ser.write(command)
+        assert self.ser.read(1) == b"\x0B"
 
     def get_adc_control_pid_ex(self):
         """
@@ -202,6 +204,7 @@ class SiliconToaster:
         command = b"\x0C"
         command += struct.pack(">4f", p_limit, i_limit, d_limit, output_limit)
         self.ser.write(command)
+        assert self.ser.read(1) == b"\x0C"
 
     def __del__(self):
         self.on_off(False)

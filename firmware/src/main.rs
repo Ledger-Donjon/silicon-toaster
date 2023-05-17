@@ -357,6 +357,7 @@ pub extern "C" fn _start() -> ! {
                     // Force to use 800 as PWM period.
                     current_period = 800;
                     adc_ctrl.set_setpoint(usart1.rx());
+                    usart1.tx(command_byte);
                 }
                 0x08 => {
                     // Command to get the values of PWM (period and width).
@@ -388,6 +389,7 @@ pub extern "C" fn _start() -> ! {
                     if store_in_flash {
                         adc_ctrl.store_in_flash(&flash);
                     }
+                    usart1.tx(command_byte);
                 }
                 0x0C => {
                     // Command to set more values of the configuration of the ADC Control
@@ -395,6 +397,7 @@ pub extern "C" fn _start() -> ! {
                     adc_ctrl.pid.i_limit = usart1.rx();
                     adc_ctrl.pid.d_limit = usart1.rx();
                     adc_ctrl.pid.output_limit = usart1.rx();
+                    usart1.tx(command_byte);
                 }
                 0x0D => {
                     // Command to retrieve more values of the configuration of the ADC Control
