@@ -91,8 +91,8 @@ impl<'a> Flash<'a> {
         // FLASH_OTP_BASE        0x1FFF7800UL
         // FLASH_OTP_END         0x1FFF7A0FUL
         let address = paddress as u32;
-        return (0x08000000u32..=0x080FFFFF).contains(&address)
-            | (0x1FFF7800..=0x1FFF7A0F).contains(&address);
+        (0x08000000u32..=0x080FFFFF).contains(&address)
+            | (0x1FFF7800..=0x1FFF7A0F).contains(&address)
     }
 
     const PSIZE_8: u8 = 0b00;

@@ -5,10 +5,8 @@ mod adc_control;
 mod flash;
 mod system_timer;
 mod txrx_utils;
-
 use adc_control::ADCControl;
 use core::panic::PanicInfo;
-use cortex_m;
 use flash::Flash;
 use stm32f2::stm32f215;
 use system_timer::SystemTimer;

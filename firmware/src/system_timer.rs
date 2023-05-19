@@ -40,6 +40,6 @@ impl<'a> SystemTimer<'a> {
         self.check_reloads();
         let reload = self.stk.load_.read().reload().bits() as u64;
         let remained_ticks = reload - (self.stk.val.read().bits() as u64);
-        return remained_ticks + reload * (self.reload_counts as u64);
+        remained_ticks + reload * (self.reload_counts as u64)
     }
 }

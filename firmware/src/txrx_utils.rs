@@ -1,8 +1,8 @@
 //! This module is used to manage the USART1 peripheral, and contain utility function to receive and
 //! transmit data.
 
-use stm32f2::stm32f215::{Peripherals, USART1};
 use heapless::spsc::Queue;
+use stm32f2::stm32f215::{Peripherals, USART1};
 
 // USART1 Queue
 static mut USART1_QUEUE: Queue<u8, 128> = Queue::new();
@@ -20,11 +20,8 @@ impl TxRx<u8> for USART1 {
         unsafe {
             let mut producer = USART1_QUEUE.split().1;
             loop {
-                match producer.dequeue() {
-                    Some(byte) => {
-                        return byte;
-                    }
-                    None => {}
+                if let Some(byte) = producer.dequeue() {
+                    return byte;
                 }
             }
         }
@@ -82,7 +79,7 @@ impl TxRx<u32> for USART1 {
     /// `value` - Word to be transmitted.
     fn tx(&self, value: u32) {
         self.tx(((value >> 16) & 0xffff) as u16);
-        self.tx(((value >> 0) & 0xffff) as u16);
+        self.tx((value & 0xffff) as u16);
     }
 }
 
@@ -99,7 +96,7 @@ impl TxRx<u64> for USART1 {
     /// `value` - Double Word to be transmitted.
     fn tx(&self, value: u64) {
         self.tx(((value >> 32) & 0xffffffff) as u32);
-        self.tx(((value >> 0) & 0xffffffff) as u32);
+        self.tx((value & 0xffffffff) as u32);
     }
 }
 
