@@ -301,8 +301,6 @@ pub extern "C" fn _start() -> ! {
     let mut high_voltage_enabled = false;
     set_high_voltage_generator(&peripherals, high_voltage_enabled);
 
-    let mut adc_results = [0u16; 1024];
-    let mut adc_results_i = 0;
     loop {
         // ADC Control. Get current value and timestamp.
         let adc_result: u16 = adc1.dr.read().data().bits();
@@ -310,9 +308,6 @@ pub extern "C" fn _start() -> ! {
 
         if adc_ctrl.needs_control(now) {
             current_width = adc_ctrl.next_control_output(adc_result, now);
-            // Record adc_result
-            adc_results[adc_results_i % adc_results.len()] = adc_result;
-            adc_results_i = adc_results_i + 1;
 
             if current_width < current_period {
                 set_pwm_parameters(tim1, current_period, current_width).unwrap();
@@ -424,23 +419,6 @@ pub extern "C" fn _start() -> ! {
                 0xAB => {
                     // Command to get the raw value obtained by the ADC.
                     usart1.tx(adc_ctrl.enabled);
-                }
-                0xAC => {
-                    // Command to get the raw value obtained by the ADC.
-                    usart1.tx(adc_results_i as u32);
-                    if adc_results_i <= adc_results.len() {
-                        for i in 0..adc_results_i {
-                            usart1.tx(adc_results[i]);
-                        }
-                    } else {
-                        let i_ = adc_results_i % adc_results.len();
-                        for i in i_..adc_results.len() {
-                            usart1.tx(adc_results[i]);
-                        }
-                        for i in 0..i_ {
-                            usart1.tx(adc_results[i]);
-                        }
-                    }
                 }
                 _ => {
                     // Unknown command. Panic!
