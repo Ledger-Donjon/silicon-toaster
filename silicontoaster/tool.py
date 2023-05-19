@@ -165,7 +165,6 @@ class Window(QWidget):
         hbox.addStretch()
         hbox.addWidget(w)
 
-
         self.advanced_PWM = QWidget()
         vbox.addWidget(self.advanced_PWM)
         self.advanced_PWM.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)

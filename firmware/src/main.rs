@@ -326,6 +326,7 @@ pub extern "C" fn _start() -> ! {
                 }
                 0x02 => {
                     // Command to get the raw value obtained by the ADC.
+                    usart1.tx(command_byte);
                     usart1.tx(adc_result);
                 }
                 0x03 => {
@@ -347,10 +348,12 @@ pub extern "C" fn _start() -> ! {
                 }
                 0x05 => {
                     // Command to get the current time from SystemTimer.
+                    usart1.tx(command_byte);
                     usart1.tx(sys_timer.get_ticks());
                 }
                 0x06 => {
                     // Command to get the ADC Control set point.
+                    usart1.tx(command_byte);
                     usart1.tx(adc_ctrl.setpoint());
                 }
                 0x07 => {
@@ -362,6 +365,7 @@ pub extern "C" fn _start() -> ! {
                 }
                 0x08 => {
                     // Command to get the values of PWM (period and width).
+                    usart1.tx(command_byte);
                     usart1.tx(current_period);
                     usart1.tx(current_width);
                 }
@@ -373,6 +377,7 @@ pub extern "C" fn _start() -> ! {
                     if read_from_flash {
                         adc_ctrl.read_from_flash();
                     }
+                    usart1.tx(command_byte);
                     usart1.tx(adc_ctrl.pid.kp);
                     usart1.tx(adc_ctrl.pid.ki);
                     usart1.tx(adc_ctrl.pid.kd);
@@ -402,6 +407,7 @@ pub extern "C" fn _start() -> ! {
                 }
                 0x0D => {
                     // Command to retrieve more values of the configuration of the ADC Control
+                    usart1.tx(command_byte);
                     usart1.tx(adc_ctrl.pid.p_limit);
                     usart1.tx(adc_ctrl.pid.i_limit);
                     usart1.tx(adc_ctrl.pid.d_limit);
@@ -416,11 +422,13 @@ pub extern "C" fn _start() -> ! {
                     usart1.tx(command_byte);
                 }
                 0xAB => {
-                    // Command to get the raw value obtained by the ADC.
+                    // Command to get the activation status of the ADC Control.
+                    usart1.tx(command_byte);
                     usart1.tx(adc_ctrl.enabled);
                 }
                 _ => {
                     // Unknown command. Panic!
+                    usart1.tx(command_byte);
                     panic!();
                 }
             }
