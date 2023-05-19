@@ -307,8 +307,7 @@ pub extern "C" fn _start() -> ! {
         let now = sys_timer.get_ticks();
 
         if adc_ctrl.needs_control(now) {
-            current_width = adc_ctrl.next_control_output(adc_result, now);
-
+            current_width = adc_ctrl.next_control_output(adc_result, now) as u16;
             if current_width < current_period {
                 set_pwm_parameters(tim1, current_period, current_width).unwrap();
             }
