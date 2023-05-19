@@ -268,8 +268,8 @@ class Window(QWidget):
         w = self.adc_control_on_off_button = QPushButton("Activate ADCControl")
         w.setCheckable(True)
         hbox.addWidget(w)
-        w.toggled.connect(self.adc_control_on_off)
         w.setChecked(self.silicon_toaster.adc_control_on_off())
+        w.toggled.connect(self.adc_control_on_off)
 
         self.advanced.setVisible(False)
         self.advanced_PWM.setVisible(False)
