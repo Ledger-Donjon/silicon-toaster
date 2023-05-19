@@ -293,7 +293,7 @@ class Window(QWidget):
         w = QLabel("Width")
         hbox2.addWidget(w)
         w = self.pwd_width_edit = QSpinBox()
-        w.setMaximum(800)
+        w.setMaximum(150)
         hbox2.addWidget(w)
 
         self.pwd_period_edit.valueChanged.connect(self.set_pwm_settings)
