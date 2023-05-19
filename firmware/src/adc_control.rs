@@ -15,16 +15,16 @@ pub struct ADCControl {
 
 impl ADCControl {
     pub fn new() -> ADCControl {
-        // Create a PID with limits
+        // Create a PID with limits at 150, which is the highest value permitted by the PWM
         let mut adc = ADCControl {
             enabled: false,
             control_ticks: SystemTimer::FREQ / 1000, // ~1milliseconds
             last_control: 0,
-            pid: *Pid::new(0.0, 200.0)
-            .p(100.0, 200.0)
-            .i(0.0, 200.0)
-            .d(0.0, 200.0)
+            pid: Pid::new(0.0, 150.0)
         };
+        adc.pid.p_limit = 150.0;
+        adc.pid.i_limit = 150.0;
+        adc.pid.d_limit = 150.0;
         adc.read_from_flash();
         adc
     }
