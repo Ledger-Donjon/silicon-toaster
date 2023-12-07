@@ -48,6 +48,7 @@ class SiliconToaster:
             2.57379247e00,
         ]
         self._software_limit = None
+        self.set_adc_control_on_off(True)
 
     @staticmethod
     def convert(value: Union[float, int], calibration: list[float]) -> float:
