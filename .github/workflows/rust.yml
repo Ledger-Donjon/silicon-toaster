@@ -16,6 +16,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+    - name: Install thumbv6m-none-eabi target
+      run: rustup target add thumbv6m-none-eabi
     - name: Build
       working-directory: ./firmware
       run: cargo build --verbose
