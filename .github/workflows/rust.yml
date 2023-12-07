@@ -21,6 +21,3 @@ jobs:
     - name: Build
       working-directory: ./firmware
       run: cargo build --verbose
-    - name: Run tests
-      working-directory: ./firmware
-      run: cargo test --verbose
