@@ -165,6 +165,16 @@ class Window(QWidget):
         hbox.addStretch()
         hbox.addWidget(w)
 
+        self.advanced_PWM = QWidget()
+        vbox.addWidget(self.advanced_PWM)
+        self.advanced_PWM.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+
+        w = QPushButton("...")
+        w.setCheckable(True)
+        w.toggled.connect(self.advanced_PWM.setVisible)
+        hbox.addStretch()
+        hbox.addWidget(w)
+
         vboxa = QVBoxLayout()
         vboxa.setContentsMargins(0, 0, 0, 0)
         self.advanced.setLayout(vboxa)
@@ -255,8 +265,39 @@ class Window(QWidget):
         w = QPushButton("Refresh")
         w.clicked.connect(self.refresh_pid_ex)
         hbox.addWidget(w)
+        w = self.adc_control_on_off_button = QPushButton("Activate ADCControl")
+        w.setCheckable(True)
+        hbox.addWidget(w)
+        w.setChecked(self.silicon_toaster.adc_control_on_off())
+        w.toggled.connect(self.adc_control_on_off)
 
         self.advanced.setVisible(False)
+        self.advanced_PWM.setVisible(False)
+
+        vboxa = QVBoxLayout()
+        vboxa.setContentsMargins(0, 0, 0, 0)
+        self.advanced_PWM.setLayout(vboxa)
+        hbox = QHBoxLayout()
+        hbox.setContentsMargins(0, 0, 0, 0)
+        vboxa.addLayout(hbox)
+
+        hbox2 = QHBoxLayout()
+        hbox.addLayout(hbox2)
+        w = QLabel("Period")
+        hbox2.addWidget(w)
+        w = self.pwd_period_edit = QSpinBox()
+        w.setMinimum(1)
+        w.setMaximum(800)
+        w.setEnabled(False)
+        hbox2.addWidget(w)
+        w = QLabel("Width")
+        hbox2.addWidget(w)
+        w = self.pwd_width_edit = QSpinBox()
+        w.setMaximum(150)
+        hbox2.addWidget(w)
+
+        self.pwd_period_edit.valueChanged.connect(self.set_pwm_settings)
+        self.pwd_width_edit.valueChanged.connect(self.set_pwm_settings)
 
         self.refresh_pid()
         self.refresh_pid_ex()
@@ -275,6 +316,12 @@ class Window(QWidget):
         timer.setInterval(50)
         timer.timeout.connect(self.refresh_voltage)
         timer.start()
+
+    def adc_control_on_off(self, value: bool):
+        """Turn-on or off ADC Control."""
+        self.silicon_toaster.set_adc_control_on_off(value)
+        print("ADC Control is now", is_on := self.silicon_toaster.adc_control_on_off())
+        self.adc_control_on_off_button.setChecked(is_on)
 
     def refresh_pid(self):
         kp, ki, kd, timetick = self.silicon_toaster.get_adc_control_pid(
@@ -317,16 +364,22 @@ class Window(QWidget):
 
     def set_pwm_settings(self):
         """Reconfigure device PWM settings from UX input."""
-        period, ok1 = QLocale().toInt(self.period_label.text())
-        width, ok2 = QLocale().toInt(self.width_label.text())
-        if ok1 and ok2:
-            self.silicon_toaster.set_pwm_settings(period, width)
+        # period, ok1 = QLocale().toInt(self.period_label.text())
+        # width, ok2 = QLocale().toInt(self.width_label.text())
+        # if ok1 and ok2:
+        #     self.silicon_toaster.set_pwm_settings(period, width)
+        period = self.pwd_period_edit.value()
+        self.pwd_width_edit.setMaximum(period)
+        width = self.pwd_width_edit.value()
+        self.silicon_toaster.set_pwm_settings(period=period, width=width)
 
     def get_pwm_settings(self):
         """Get PWM settings from device and update UX."""
         period, width = self.silicon_toaster.get_pwm_settings()
         self.period_label.setText(QLocale().toString(period))
         self.width_label.setText(QLocale().toString(width))
+        self.pwd_period_edit.setValue(period)
+        self.pwd_width_edit.setValue(width)
         return period, width
 
     def set_voltage_destination(self):

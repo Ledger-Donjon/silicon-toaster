@@ -71,6 +71,7 @@ class SiliconToaster:
         :rtype: int
         """
         self.ser.write(b"\x02")
+        assert self.ser.read(1) == b"\x02"
         return int.from_bytes(self.ser.read(2), "big", signed=False)
 
     def read_voltage(self) -> float:
@@ -126,6 +127,7 @@ class SiliconToaster:
         :return:
         """
         self.ser.write(b"\x05")
+        assert self.ser.read(1) == b"\x05"
         return struct.unpack(">Q", self.ser.read(8))[0]
 
     def get_voltage_setpoint(self) -> float:
@@ -134,6 +136,7 @@ class SiliconToaster:
         :return: The configured voltage value to aim through the ADC Control.
         """
         self.ser.write(b"\x06")
+        assert self.ser.read(1) == b"\x06"
         destination = struct.unpack(">H", self.ser.read(2))[0]
         return self.to_volt(destination)
 
@@ -145,6 +148,7 @@ class SiliconToaster:
         command = b"\x07"
         command += struct.pack(">H", self.to_raw(destination))
         self.ser.write(command)
+        assert self.ser.read(1) == b"\x07"
 
     def get_pwm_settings(self) -> tuple[int, int]:
         """
@@ -152,6 +156,7 @@ class SiliconToaster:
         :return: A tuple containing the period and the width.
         """
         self.ser.write(b"\x08")
+        assert self.ser.read(1) == b"\x08"
         period = int.from_bytes(self.ser.read(2), "big", signed=False)
         width = int.from_bytes(self.ser.read(2), "big", signed=False)
         return period, width
@@ -160,6 +165,7 @@ class SiliconToaster:
         command = b"\x0A"
         command += struct.pack(">?", from_flash)
         self.ser.write(command)
+        assert self.ser.read(1) == b"\x0A"
         return struct.unpack(">3fQ", self.ser.read(3 * 4 + 8))
 
     def set_adc_control_pid(
@@ -173,6 +179,7 @@ class SiliconToaster:
         command = b"\x0B"
         command += struct.pack(">?3fQ", to_flash, kp, ki, kd, control_ticks)
         self.ser.write(command)
+        assert self.ser.read(1) == b"\x0B"
 
     def get_adc_control_pid_ex(self):
         """
@@ -186,6 +193,7 @@ class SiliconToaster:
         """
         command = b"\x0D"
         self.ser.write(command)
+        assert self.ser.read(1) == b"\x0D"
         return struct.unpack(">5fQ", self.ser.read(5 * 4 + 8))
 
     def set_adc_control_pid_ex(
@@ -202,6 +210,46 @@ class SiliconToaster:
         command = b"\x0C"
         command += struct.pack(">4f", p_limit, i_limit, d_limit, output_limit)
         self.ser.write(command)
+        assert self.ser.read(1) == b"\x0C"
+
+    def set_adc_control_on_off(self, enable: bool):
+        """
+        Turn on or off of the ADC Control.
+        :param enable: True or False to enable or disable the of the ADC Control.
+        """
+        command = b"\xAA" + (b"\1" if enable else b"\0")
+        self.ser.write(command)
+        assert self.ser.read(1) == b"\xAA"
+
+    def adc_control_on_off(self) -> bool:
+        """
+        Give information if ADC Control is enabled or not.
+        :param enable: True or False to enable or disable the of the ADC Control.
+        """
+        command = b"\xAB"
+        self.ser.write(command)
+        assert self.ser.read(1) == b"\xAB"
+        return self.ser.read(1) == b"\x01"
+
+    def panic(self):
+        """
+        Send an illegal command in order to enter in the panic()
+        """
+        command = b"\x77"
+        self.ser.write(command)
+        assert self.ser.read(1) == b"\x77"
+
+    def adc_results(self) -> int:
+        """
+        Get values of ADC values passed to PID.
+        """
+        command = b"\xAC"
+        self.ser.write(command)
+        assert self.ser.read(1) == b"\xAC"
+        v = struct.unpack(">I", self.ser.read(4))[0]
+        print(v)
+        return struct.unpack(f">{v}H", self.ser.read(v*2))
+
 
     def __del__(self):
         self.on_off(False)

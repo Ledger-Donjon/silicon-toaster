@@ -5,10 +5,8 @@ mod adc_control;
 mod flash;
 mod system_timer;
 mod txrx_utils;
-
 use adc_control::ADCControl;
 use core::panic::PanicInfo;
-use cortex_m;
 use flash::Flash;
 use stm32f2::stm32f215;
 use system_timer::SystemTimer;
@@ -24,13 +22,14 @@ fn panic(_: &PanicInfo) -> ! {
         // Here we just blink the red LED forever to indicate there is a
         // problem.
         let peripherals = stm32f215::Peripherals::steal();
+        let mut sys_timer = SystemTimer::new(&peripherals.STK);
         set_high_voltage_generator(&peripherals, false);
         set_led_green(&peripherals.GPIOC, false);
         loop {
             set_led_red(&peripherals.GPIOC, true);
-            delay_ms(250);
+            delay_ms(&mut sys_timer, 250);
             set_led_red(&peripherals.GPIOC, false);
-            delay_ms(250);
+            delay_ms(&mut sys_timer, 250);
         }
     }
 }
@@ -77,14 +76,14 @@ fn set_15v_regulator(gpio: &stm32f215::GPIOB, state: bool) {
 
 /// Approximated delay function. Precise enough for what we need to do...
 /// # Arguments
-/// * `duration` - The number of loops to wait for delaying.
+/// * `duration` - The time in ms we want to wait
 #[inline(never)]
-fn delay_ms(duration: u32) {
-    // Estimated duration for each loop: 7 clock cycles.
-    assert!(duration <= 0xffffffff / 64000);
-    let count: u32 = (duration * 64000) / 7;
-    for _ in 0..count {
-        cortex_m::asm::nop();
+fn delay_ms(sys_timer: &mut SystemTimer, duration: u32) {
+    let duration_in_ticks = (duration as u64) * SystemTimer::FREQ / 1000;
+    let start = sys_timer.get_ticks();
+    let mut now = start;
+    while (now - start) < duration_in_ticks {
+        now = sys_timer.get_ticks();
     }
 }
 
@@ -254,13 +253,13 @@ pub extern "C" fn _start() -> ! {
     gpioa.ospeedr.modify(|_, w| w.ospeedr13().very_high_speed());
     gpioa.moder.modify(|_, w| w.moder13().output());
 
-    // Give some time for the FT232 to boot-up.
-    set_led_green(&peripherals.GPIOC, false);
-    set_led_red(&peripherals.GPIOC, true);
-    delay_ms(500);
-
     // System timer to track time between two controls.
     let mut sys_timer = SystemTimer::new(&peripherals.STK);
+
+    // Give some time for the FT232 to boot-up.
+    set_led_green(&peripherals.GPIOC, true);
+    set_led_red(&peripherals.GPIOC, true);
+    delay_ms(&mut sys_timer, 500);
 
     // Variable to track last applied PWM parameters.
     let mut current_period: u16 = 800;
@@ -306,11 +305,12 @@ pub extern "C" fn _start() -> ! {
         let now = sys_timer.get_ticks();
 
         if adc_ctrl.needs_control(now) {
-            current_width = adc_ctrl.next_control_output(adc_result, now);
+            current_width = adc_ctrl.next_control_output(adc_result, now) as u16;
             if current_width < current_period {
                 set_pwm_parameters(tim1, current_period, current_width).unwrap();
             }
         }
+
         if usart1_has_data() {
             let command_byte: u8 = usart1.rx();
             match command_byte {
@@ -324,6 +324,7 @@ pub extern "C" fn _start() -> ! {
                 }
                 0x02 => {
                     // Command to get the raw value obtained by the ADC.
+                    usart1.tx(command_byte);
                     usart1.tx(adc_result);
                 }
                 0x03 => {
@@ -345,10 +346,12 @@ pub extern "C" fn _start() -> ! {
                 }
                 0x05 => {
                     // Command to get the current time from SystemTimer.
+                    usart1.tx(command_byte);
                     usart1.tx(sys_timer.get_ticks());
                 }
                 0x06 => {
                     // Command to get the ADC Control set point.
+                    usart1.tx(command_byte);
                     usart1.tx(adc_ctrl.setpoint());
                 }
                 0x07 => {
@@ -356,9 +359,11 @@ pub extern "C" fn _start() -> ! {
                     // Force to use 800 as PWM period.
                     current_period = 800;
                     adc_ctrl.set_setpoint(usart1.rx());
+                    usart1.tx(command_byte);
                 }
                 0x08 => {
                     // Command to get the values of PWM (period and width).
+                    usart1.tx(command_byte);
                     usart1.tx(current_period);
                     usart1.tx(current_width);
                 }
@@ -370,6 +375,7 @@ pub extern "C" fn _start() -> ! {
                     if read_from_flash {
                         adc_ctrl.read_from_flash();
                     }
+                    usart1.tx(command_byte);
                     usart1.tx(adc_ctrl.pid.kp);
                     usart1.tx(adc_ctrl.pid.ki);
                     usart1.tx(adc_ctrl.pid.kd);
@@ -387,6 +393,7 @@ pub extern "C" fn _start() -> ! {
                     if store_in_flash {
                         adc_ctrl.store_in_flash(&flash);
                     }
+                    usart1.tx(command_byte);
                 }
                 0x0C => {
                     // Command to set more values of the configuration of the ADC Control
@@ -394,9 +401,11 @@ pub extern "C" fn _start() -> ! {
                     adc_ctrl.pid.i_limit = usart1.rx();
                     adc_ctrl.pid.d_limit = usart1.rx();
                     adc_ctrl.pid.output_limit = usart1.rx();
+                    usart1.tx(command_byte);
                 }
                 0x0D => {
                     // Command to retrieve more values of the configuration of the ADC Control
+                    usart1.tx(command_byte);
                     usart1.tx(adc_ctrl.pid.p_limit);
                     usart1.tx(adc_ctrl.pid.i_limit);
                     usart1.tx(adc_ctrl.pid.d_limit);
@@ -404,8 +413,20 @@ pub extern "C" fn _start() -> ! {
                     usart1.tx(adc_ctrl.pid.setpoint);
                     usart1.tx(adc_ctrl.last_control);
                 }
+                0xAA => {
+                    // Command to activate/deactivate the ADC Control.
+                    let value: u8 = usart1.rx();
+                    adc_ctrl.enabled = value == 1;
+                    usart1.tx(command_byte);
+                }
+                0xAB => {
+                    // Command to get the activation status of the ADC Control.
+                    usart1.tx(command_byte);
+                    usart1.tx(adc_ctrl.enabled);
+                }
                 _ => {
                     // Unknown command. Panic!
+                    usart1.tx(command_byte);
                     panic!();
                 }
             }

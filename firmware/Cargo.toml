@@ -1,12 +1,12 @@
 [package]
 name = "silicontoaster"
-version = "1.0.0"
+version = "1.0.1"
 authors = ["yhql <victor_servant@hotmail.com>", "Olivier Hériveaux <olivier.heriveaux@ledger.fr>",
             "Michaël Mouchous <michael.mouchous@ledger.fr>"]
 edition = "2021"
 
 [dependencies.pid]
-version = "3.0.0"
+version = "4.0.0"
 
 [dependencies.cortex-m]
 version = "0.7.6"
@@ -16,7 +16,7 @@ version = "0.15.1"
 features = ["stm32f215", "rt"]
 
 [dependencies.heapless]
-version = "0.5.1"
+version = "0.7.16"
 
 [profile.dev]
 panic = "abort"
