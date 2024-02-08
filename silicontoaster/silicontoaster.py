@@ -102,9 +102,13 @@ class SiliconToaster:
             pulse width.
         """
         if period < 1:
-            raise ValueError("Invalid PWM period")
-        if (width < 0) or (width > period):
-            raise ValueError("Invalid PWM width")
+            raise ValueError("Invalid PWM period: it must be greater or equal to 1")
+        if width < 0:
+            raise ValueError("Invalid PWM width: it must be positive")
+        if width >= period:
+            raise ValueError(
+                "Invalid PWM settings values: width must be lesser than period"
+            )
         command = bytearray(b"\x03")
         command += period.to_bytes(2, "big", signed=False)
         command += width.to_bytes(2, "big", signed=False)
@@ -115,7 +119,10 @@ class SiliconToaster:
         """
         Generate a pulse with the device to discharge de capacitors.
         """
-        assert duration in range(0x10000)
+        if duration not in range(0x10000):
+            raise ValueError(
+                f"Invalid software shoot duration: it must be lesser than {0x10000}"
+            )
         command = bytearray(b"\x04")
         command += duration.to_bytes(2, "big", signed=False)
         self.ser.write(command)
@@ -250,6 +257,16 @@ class SiliconToaster:
         print(v)
         return struct.unpack(f">{v}H", self.ser.read(v*2))
 
+    def get_last_error(self) -> int:
+        """
+        Get the error counter, and acknowledges it (reset to zero).
+
+        :return: Error counter value.
+        """
+        command = b"\xEE"
+        self.ser.write(command)
+        assert self.ser.read(1) == b"\xEE"
+        return int.from_bytes(self.ser.read(2), "big")
 
     def __del__(self):
         self.on_off(False)

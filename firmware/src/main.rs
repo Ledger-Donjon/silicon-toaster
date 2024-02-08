@@ -299,6 +299,7 @@ pub extern "C" fn _start() -> ! {
     let mut high_voltage_enabled = false;
     set_high_voltage_generator(&peripherals, high_voltage_enabled);
 
+    let mut error = 0u16;
     loop {
         // ADC Control. Get current value and timestamp.
         let adc_result: u16 = adc1.dr.read().data().bits();
@@ -306,9 +307,13 @@ pub extern "C" fn _start() -> ! {
 
         if adc_ctrl.needs_control(now) {
             current_width = adc_ctrl.next_control_output(adc_result, now) as u16;
-            if current_width < current_period {
-                set_pwm_parameters(tim1, current_period, current_width).unwrap();
+            if current_width > current_period {
+                current_width = current_period;
             }
+            match set_pwm_parameters(tim1, current_period, current_width) {
+                Ok(_) => (),
+                Err(_) => error += 1,
+            };
         }
 
         if usart1_has_data() {
@@ -424,6 +429,12 @@ pub extern "C" fn _start() -> ! {
                     usart1.tx(command_byte);
                     usart1.tx(adc_ctrl.enabled);
                 }
+                0xEE => {
+                    // Acknowledge errors.
+                    usart1.tx(command_byte);
+                    usart1.tx(error);
+                    error = 0;
+                }
                 _ => {
                     // Unknown command. Panic!
                     usart1.tx(command_byte);
@@ -431,8 +442,9 @@ pub extern "C" fn _start() -> ! {
                 }
             }
         }
-        let danger: bool = (adc_result >= 67) || high_voltage_enabled;
-        set_led_red(&peripherals.GPIOC, danger);
-        set_led_green(&peripherals.GPIOC, !danger);
+        let danger = (adc_result >= 67) || high_voltage_enabled;
+        let has_error = error != 0;
+        set_led_red(&peripherals.GPIOC, danger || has_error);
+        set_led_green(&peripherals.GPIOC, !danger || has_error);
     }
 }
