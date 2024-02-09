@@ -51,14 +51,14 @@ impl TxRx<bool> for USART1 {
 
 // u16 data transmission via USART1 implementation
 impl TxRx<u16> for USART1 {
-    /// Receive a 16-bits unsigned int from USART1. Blocks until all data is
+    /// Receive a 16-bits big endian unsigned int from USART1. Blocks until all data is
     /// available.
     fn rx(&self) -> u16 {
         let h: u8 = self.rx();
         let l: u8 = self.rx();
         ((h as u16) << 8) + l as u16
     }
-    /// Transmit a 16-bits word over USART1.
+    /// Transmit a 16-bits big endian unsigned int over USART1.
     /// `value` - Half Word to be transmitted.
     fn tx(&self, value: u16) {
         self.tx((value >> 8) as u8);
@@ -68,7 +68,7 @@ impl TxRx<u16> for USART1 {
 
 // u32 data transmission via USART1 implementation
 impl TxRx<u32> for USART1 {
-    /// Receive a 32-bits unsigned int from USART1. Blocks until all data is
+    /// Receive a 32-bits big endian unsigned int from USART1. Blocks until all data is
     /// available.
     fn rx(&self) -> u32 {
         let h: u16 = self.rx();
@@ -85,7 +85,7 @@ impl TxRx<u32> for USART1 {
 
 // u64 data transmission via USART1 implementation
 impl TxRx<u64> for USART1 {
-    /// Receive a 64-bits unsigned int from USART1. Blocks until all data is
+    /// Receive a 64-bits big endian unsigned int from USART1. Blocks until all data is
     /// available.
     fn rx(&self) -> u64 {
         let h: u32 = self.rx();
