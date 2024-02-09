@@ -1,7 +1,19 @@
 #!/usr/bin/python3
-from PyQt5.QtCore import *
-from PyQt5.QtGui import *
-from PyQt5.QtWidgets import *
+from PyQt5.QtCore import Qt, QLineF, QLocale, QTimer
+from PyQt5.QtGui import QPainter, QBrush, QPen, QColor
+from PyQt5.QtWidgets import (
+    QWidget,
+    QShortcut,
+    QVBoxLayout,
+    QHBoxLayout,
+    QPushButton,
+    QDoubleSpinBox,
+    QLabel,
+    QSpinBox,
+    QCheckBox,
+    QApplication,
+    QSizePolicy,
+)
 from silicontoaster import SiliconToaster
 import sys
 import math
@@ -27,7 +39,7 @@ class VoltageViewer(QWidget):
         painter.fillRect(self.rect(), QBrush(Qt.black))
 
         width = self.width()
-        height = self.height()
+        # height = self.height()
 
         y0 = self.w2sy(self.vsafe)
         y1 = self.w2sy(self.vmax)
@@ -279,18 +291,14 @@ class Window(QWidget):
         kp, ki, kd, timetick = self.silicon_toaster.get_adc_control_pid(
             self.flash.isChecked()
         )
-        [
-            w.blockSignals(True)
-            for w in [self.pid_kp, self.pid_ki, self.pid_kd, self.timetick]
-        ]
+        for widget in [self.pid_kp, self.pid_ki, self.pid_kd, self.timetick]:
+            widget.blockSignals(True)
         self.pid_kp.setValue(kp)
         self.pid_ki.setValue(ki)
         self.pid_kd.setValue(kd)
         self.timetick.setValue(timetick)
-        [
-            w.blockSignals(False)
-            for w in [self.pid_kp, self.pid_ki, self.pid_kd, self.timetick]
-        ]
+        for widget in [self.pid_kp, self.pid_ki, self.pid_kd, self.timetick]:
+            widget.blockSignals(False)
 
     def apply_pid(self):
         """Sends the values entered in the edit boxes to the silicon toaser"""

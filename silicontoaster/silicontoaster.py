@@ -1,11 +1,8 @@
 #!/usr/bin/python3
 import struct
-from typing import Optional, Union
+from typing import Union
 import serial
 import serial.tools.list_ports
-import os
-import numpy
-from scipy.interpolate import LinearNDInterpolator
 
 
 class SiliconToaster:
