@@ -269,7 +269,7 @@ class Window(QWidget):
         w.setCheckable(True)
         hbox.addWidget(w)
         w.setChecked(self.silicon_toaster.adc_control_on_off())
-        w.toggled.connect(self.adc_control_on_off)
+        w.toggled.connect(self.set_adc_control_on_off)
 
         self.advanced.setVisible(False)
         self.advanced_PWM.setVisible(False)
@@ -296,15 +296,15 @@ class Window(QWidget):
         w.setMaximum(150)
         hbox2.addWidget(w)
 
-        self.pwd_period_edit.valueChanged.connect(self.set_pwm_settings)
-        self.pwd_width_edit.valueChanged.connect(self.set_pwm_settings)
+        self.pwd_period_edit.valueChanged.connect(self.apply_pwm_settings)
+        self.pwd_width_edit.valueChanged.connect(self.apply_pwm_settings)
 
         self.refresh_pid()
         self.refresh_pid_ex()
-        self.pid_kp.valueChanged.connect(self.pid_changed)
-        self.pid_ki.valueChanged.connect(self.pid_changed)
-        self.pid_kd.valueChanged.connect(self.pid_changed)
-        self.timetick.valueChanged.connect(self.pid_changed)
+        self.pid_kp.valueChanged.connect(self.apply_pid)
+        self.pid_ki.valueChanged.connect(self.apply_pid)
+        self.pid_kd.valueChanged.connect(self.apply_pid)
+        self.timetick.valueChanged.connect(self.apply_pid)
 
         w = self.viewer = VoltageViewer()
         vbox.addWidget(w)
@@ -317,22 +317,33 @@ class Window(QWidget):
         timer.timeout.connect(self.refresh_voltage)
         timer.start()
 
-    def adc_control_on_off(self, value: bool):
+    def set_adc_control_on_off(self, value: bool):
         """Turn-on or off ADC Control."""
         self.silicon_toaster.set_adc_control_on_off(value)
         print("ADC Control is now", is_on := self.silicon_toaster.adc_control_on_off())
+        self.adc_control_on_off_button.blockSignals(True)
         self.adc_control_on_off_button.setChecked(is_on)
+        self.adc_control_on_off_button.blockSignals(False)
 
     def refresh_pid(self):
         kp, ki, kd, timetick = self.silicon_toaster.get_adc_control_pid(
             self.flash.isChecked()
         )
+        [
+            w.blockSignals(True)
+            for w in [self.pid_kp, self.pid_ki, self.pid_kd, self.timetick]
+        ]
         self.pid_kp.setValue(kp)
         self.pid_ki.setValue(ki)
         self.pid_kd.setValue(kd)
         self.timetick.setValue(timetick)
+        [
+            w.blockSignals(False)
+            for w in [self.pid_kp, self.pid_ki, self.pid_kd, self.timetick]
+        ]
 
-    def pid_changed(self):
+    def apply_pid(self):
+        """Sends the values entered in the edit boxes to the silicon toaser"""
         self.silicon_toaster.set_adc_control_pid(
             self.pid_kp.value(),
             self.pid_ki.value(),
@@ -342,6 +353,7 @@ class Window(QWidget):
         )
 
     def refresh_pid_ex(self):
+        """Update the content in the edit boxes to the silicon toaster"""
         r = self.silicon_toaster.get_adc_control_pid_ex()
         kp_limit, ki_limit, kd_limit, output_limit, set_point, last_control = r
         self.p_limit.setText(f"{kp_limit}")
@@ -362,7 +374,7 @@ class Window(QWidget):
         """Turn-on or off high voltage generation."""
         self.silicon_toaster.on_off(value)
 
-    def set_pwm_settings(self):
+    def apply_pwm_settings(self):
         """Reconfigure device PWM settings from UX input."""
         # period, ok1 = QLocale().toInt(self.period_label.text())
         # width, ok2 = QLocale().toInt(self.width_label.text())
@@ -378,8 +390,10 @@ class Window(QWidget):
         period, width = self.silicon_toaster.get_pwm_settings()
         self.period_label.setText(QLocale().toString(period))
         self.width_label.setText(QLocale().toString(width))
+        [w.blockSignals(True) for w in [self.pwd_period_edit, self.pwd_width_edit]]
         self.pwd_period_edit.setValue(period)
         self.pwd_width_edit.setValue(width)
+        [w.blockSignals(False) for w in [self.pwd_period_edit, self.pwd_width_edit]]
         return period, width
 
     def set_voltage_destination(self):
@@ -392,11 +406,12 @@ class Window(QWidget):
     def get_voltage_destination(self):
         """Get the main ADC control parameters from Silicon toaster and updates the UI"""
         destination = self.silicon_toaster.get_voltage_setpoint()
-        self.voltage_destination.valueChanged.disconnect()
+
         self.viewer.vdest = destination
         self.viewer.repaint()
+        self.voltage_destination.blockSignals(True)
         self.voltage_destination.setValue(destination)
-        self.voltage_destination.valueChanged.connect(self.set_voltage_destination)
+        self.voltage_destination.blockSignals(False)
 
     def shoot(self):
         """Software shoot with duration from UI."""
