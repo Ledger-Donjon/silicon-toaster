@@ -260,10 +260,10 @@ class Window(QWidget):
 
         self.refresh_pid()
         self.refresh_pid_ex()
-        self.pid_kp.valueChanged.connect(self.pid_changed)
-        self.pid_ki.valueChanged.connect(self.pid_changed)
-        self.pid_kd.valueChanged.connect(self.pid_changed)
-        self.timetick.valueChanged.connect(self.pid_changed)
+        self.pid_kp.valueChanged.connect(self.apply_pid)
+        self.pid_ki.valueChanged.connect(self.apply_pid)
+        self.pid_kd.valueChanged.connect(self.apply_pid)
+        self.timetick.valueChanged.connect(self.apply_pid)
 
         w = self.viewer = VoltageViewer()
         vbox.addWidget(w)
@@ -279,12 +279,21 @@ class Window(QWidget):
         kp, ki, kd, timetick = self.silicon_toaster.get_adc_control_pid(
             self.flash.isChecked()
         )
+        [
+            w.blockSignals(True)
+            for w in [self.pid_kp, self.pid_ki, self.pid_kd, self.timetick]
+        ]
         self.pid_kp.setValue(kp)
         self.pid_ki.setValue(ki)
         self.pid_kd.setValue(kd)
         self.timetick.setValue(timetick)
+        [
+            w.blockSignals(False)
+            for w in [self.pid_kp, self.pid_ki, self.pid_kd, self.timetick]
+        ]
 
-    def pid_changed(self):
+    def apply_pid(self):
+        """Sends the values entered in the edit boxes to the silicon toaser"""
         self.silicon_toaster.set_adc_control_pid(
             self.pid_kp.value(),
             self.pid_ki.value(),
@@ -294,6 +303,7 @@ class Window(QWidget):
         )
 
     def refresh_pid_ex(self):
+        """Update the content in the edit boxes to the silicon toaster"""
         r = self.silicon_toaster.get_adc_control_pid_ex()
         kp_limit, ki_limit, kd_limit, output_limit, set_point, last_control = r
         self.p_limit.setText(f"{kp_limit}")
@@ -323,11 +333,11 @@ class Window(QWidget):
     def get_voltage_destination(self):
         """Get the main ADC control parameters from Silicon toaster and updates the UI"""
         destination = self.silicon_toaster.get_voltage_setpoint()
-        self.voltage_destination.valueChanged.disconnect()
         self.viewer.vdest = destination
         self.viewer.repaint()
+        self.voltage_destination.blockSignals(True)
         self.voltage_destination.setValue(destination)
-        self.voltage_destination.valueChanged.connect(self.set_voltage_destination)
+        self.voltage_destination.blockSignals(False)
 
     def shoot(self):
         """Software shoot with duration from UI."""

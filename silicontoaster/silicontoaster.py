@@ -18,7 +18,8 @@ class SiliconToaster:
             possible_ports = []
             for port in serial.tools.list_ports.comports():
                 # USB description string is 'SiliconToaster'.
-                if ((port.product is not None)
+                if (
+                    (port.product is not None)
                     and (port.product == "SiliconToaster")
                     and ((sn is None) or (port.serial_number == sn))
                 ):
@@ -88,6 +89,7 @@ class SiliconToaster:
     def on_off(self, enable: bool):
         """
         Turn on or off high-voltage generation.
+
         :param enable: True or False to enable or disable the high-voltage generation.
         """
         command = b"\x01" + (b"\1" if enable else b"\0")
@@ -97,15 +99,20 @@ class SiliconToaster:
     def set_pwm_settings(self, period: int, width: int):
         """
         Reconfigure PWM settings.
+
         :param period: Timer max counter value for PWM generation. Defines the
             period.
         :param width: Timer comparator value for PWM generation. Defines the
             pulse width.
         """
         if period < 1:
-            raise ValueError("Invalid PWM period")
-        if (width < 0) or (width > period):
-            raise ValueError("Invalid PWM width")
+            raise ValueError("Invalid PWM period: it must be greater or equal to 1")
+        if width < 0:
+            raise ValueError("Invalid PWM width: it must be positive")
+        if width >= period:
+            raise ValueError(
+                "Invalid PWM settings values: width must be lesser than period"
+            )
         command = bytearray(b"\x03")
         command += period.to_bytes(2, "big", signed=False)
         command += width.to_bytes(2, "big", signed=False)
@@ -116,7 +123,10 @@ class SiliconToaster:
         """
         Generate a pulse with the device to discharge de capacitors.
         """
-        assert duration in range(0x10000)
+        if duration not in range(0x10000):
+            raise ValueError(
+                f"Invalid software shoot duration: it must be lesser than {0x10000}"
+            )
         command = bytearray(b"\x04")
         command += duration.to_bytes(2, "big", signed=False)
         self.ser.write(command)
@@ -124,16 +134,18 @@ class SiliconToaster:
 
     def get_ticks(self) -> int:
         """
-        Get the timestamp in number of ticks.
-        :return:
+        Get the timestamp in number of ticks, since the powerup of the silicon toaster.
+
+        :return: The timestamp value
         """
         self.ser.write(b"\x05")
         assert self.ser.read(1) == b"\x05"
-        return struct.unpack(">Q", self.ser.read(8))[0]
+        return int.from_bytes(self.ser.read(8), "big")
 
     def get_voltage_setpoint(self) -> float:
         """
         Get the ADC Control's set point and return the corresponding voltage value.
+
         :return: The configured voltage value to aim through the ADC Control.
         """
         self.ser.write(b"\x06")
@@ -144,6 +156,7 @@ class SiliconToaster:
     def set_voltage_setpoint(self, destination: float):
         """
         Set the ADC Control's set point to aim the given voltage.
+
         :param destination: The desired voltage.
         """
         command = b"\x07"
@@ -154,6 +167,7 @@ class SiliconToaster:
     def get_pwm_settings(self) -> tuple[int, int]:
         """
         Retrieve the last values set for PWM.
+
         :return: A tuple containing the period and the width.
         """
         self.ser.write(b"\x08")
@@ -163,6 +177,11 @@ class SiliconToaster:
         return period, width
 
     def get_adc_control_pid(self, from_flash=False):
+        """
+        Get ADC control PID.
+
+        :return: A tuple containing the period and the width.
+        """
         command = b"\x0A"
         command += struct.pack(">?", from_flash)
         self.ser.write(command)
@@ -225,7 +244,8 @@ class SiliconToaster:
     def adc_control_on_off(self) -> bool:
         """
         Give information if ADC Control is enabled or not.
-        :param enable: True or False to enable or disable the of the ADC Control.
+
+        :return: True or False to enable or disable the of the ADC Control.
         """
         command = b"\xAB"
         self.ser.write(command)
@@ -249,8 +269,18 @@ class SiliconToaster:
         assert self.ser.read(1) == b"\xAC"
         v = struct.unpack(">I", self.ser.read(4))[0]
         print(v)
-        return struct.unpack(f">{v}H", self.ser.read(v*2))
+        return struct.unpack(f">{v}H", self.ser.read(v * 2))
 
+    def get_last_error(self) -> int:
+        """
+        Get the error counter, and acknowledges it (reset to zero).
+
+        :return: Error counter value.
+        """
+        command = b"\xEE"
+        self.ser.write(command)
+        assert self.ser.read(1) == b"\xEE"
+        return int.from_bytes(self.ser.read(2), "big")
 
     def __del__(self):
         self.on_off(False)
