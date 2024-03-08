@@ -1,9 +1,8 @@
 #!/usr/bin/python3
-from PyQt5.QtCore import Qt, QLineF, QLocale, QTimer
-from PyQt5.QtGui import QPainter, QBrush, QPen, QColor
-from PyQt5.QtWidgets import (
+from PyQt6.QtCore import Qt, QLineF, QLocale, QTimer, QKeyCombination
+from PyQt6.QtGui import QPainter, QBrush, QPen, QColor, QShortcut, QKeySequence
+from PyQt6.QtWidgets import (
     QWidget,
-    QShortcut,
     QVBoxLayout,
     QHBoxLayout,
     QPushButton,
@@ -35,8 +34,8 @@ class VoltageViewer(QWidget):
         """Draw the widget."""
         painter = QPainter()
         painter.begin(self)
-        painter.setRenderHint(QPainter.Antialiasing)
-        painter.fillRect(self.rect(), QBrush(Qt.black))
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.fillRect(self.rect(), QBrush(Qt.GlobalColor.black))
 
         width = self.width()
         # height = self.height()
@@ -44,7 +43,11 @@ class VoltageViewer(QWidget):
         y0 = self.w2sy(self.vsafe)
         y1 = self.w2sy(self.vmax)
         painter.fillRect(
-            0, int(y0), width, int(y1 - y0), QBrush(QColor(70, 20, 0), Qt.BDiagPattern)
+            0,
+            int(y0),
+            width,
+            int(y1 - y0),
+            QBrush(QColor(70, 20, 0), Qt.BrushStyle.BDiagPattern),
         )
 
         for i in range(0, self.vmax, 100):
@@ -55,11 +58,11 @@ class VoltageViewer(QWidget):
             y = round(self.w2sy(i)) - 0.5
             painter.drawLine(QLineF(0, y, width, y))
 
-        painter.setPen(QPen(Qt.darkYellow))
+        painter.setPen(QPen(Qt.GlobalColor.darkYellow))
         y = round(self.w2sy(int(self.vdest))) - 0.5
         painter.drawLine(QLineF(0, y, width, y))
 
-        painter.setPen(QPen(Qt.yellow))
+        painter.setPen(QPen(Qt.GlobalColor.yellow))
         for i in range(len(self.data) - 1):
             v0 = self.data[i]
             v1 = self.data[i + 1]
@@ -83,7 +86,11 @@ class VoltageViewer(QWidget):
             font = painter.font()
             font.setPixelSize(20)
             painter.setFont(font)
-            painter.drawText(text_rect, Qt.AlignHCenter | Qt.AlignTop, text)
+            painter.drawText(
+                text_rect,
+                Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop,
+                text,
+            )
 
         painter.end()
 
@@ -110,11 +117,18 @@ class VoltageViewer(QWidget):
         return (x / (self.hist_size - 1)) * self.width()
 
 
-class Window(QWidget):
-    def __init__(self, dev):
+class SiliconToasterWindow(QWidget):
+    def __init__(self, dev=None):
         super().__init__()
 
-        shortcut = QShortcut(Qt.CTRL + Qt.Key_S, self)
+        self.setWindowTitle("Silicon Toaster")
+
+        shortcut = QShortcut(
+            QKeySequence(
+                QKeyCombination(Qt.KeyboardModifier.ControlModifier, Qt.Key.Key_S)
+            ),
+            self,
+        )
         shortcut.activated.connect(self.shoot)
 
         if isinstance(dev, SiliconToaster):
@@ -147,7 +161,7 @@ class Window(QWidget):
         w.setMaximum(1500.0)
         w.setDecimals(0)
         w.setSingleStep(5)
-        w.setAlignment(Qt.AlignTrailing)
+        w.setAlignment(Qt.AlignmentFlag.AlignTrailing)
         w.setToolTip("Target")
         w.setMaximumWidth(100)
         w.valueChanged.connect(self.set_voltage_destination)
@@ -169,7 +183,9 @@ class Window(QWidget):
 
         self.advanced = QWidget()
         vbox.addWidget(self.advanced)
-        self.advanced.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.advanced.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
+        )
 
         w = QPushButton("PID settings")
         w.setCheckable(True)
@@ -187,13 +203,33 @@ class Window(QWidget):
         hbox2 = QHBoxLayout()
         hbox.addLayout(hbox2)
         hbox2.setContentsMargins(0, 0, 0, 0)
-        w = self.period_label = QLabel("")
+        w = self.period_label = QPushButton("")
+        w.setCheckable(True)
+        adc_activated = self.silicon_toaster.adc_control_on_off()
+        w.setChecked(adc_activated)
         w.setToolTip("PWM: Period")
         w.setMinimumWidth(75)
+        w.toggled.connect(
+            lambda b: [
+                self.silicon_toaster.set_adc_control_on_off(b),
+                self.width_entry.setEnabled(not b),
+            ]
+        )
         hbox2.addWidget(w)
-        w = self.width_label = QLabel("")
+
+        w = self.width_entry = QSpinBox()
         w.setToolTip("PWM: Width")
+        w.setValue(1)
+        w.setMinimum(1)
+        w.setMaximum(800)
+        w.setSingleStep(50)
         w.setMinimumWidth(75)
+        w.setEnabled(not adc_activated)
+        w.valueChanged.connect(
+            lambda i: self.silicon_toaster.set_pwm_settings(
+                self.silicon_toaster.get_pwm_settings()[0], i
+            )
+        )
         hbox2.addWidget(w)
 
         hbox2 = QHBoxLayout()
@@ -321,11 +357,20 @@ class Window(QWidget):
         self.setpoint_label.setText(f"{set_point}")
         self.lastcontrol_label.setText(f"{last_control}")
 
+    def refresh_pwm_settings(self):
+        period, width = self.silicon_toaster.get_pwm_settings()
+        self.period_label.setText(str(period))
+        self.width_entry.blockSignals(True)
+        self.width_entry.setValue(width)
+        self.width_entry.blockSignals(False)
+
     def refresh_voltage(self):
         """Get the current value of the voltage and refresh"""
         v = self.silicon_toaster.read_voltage()
         self.viewer.add_data(v)
         self.viewer.repaint()
+        # Also, refresh PWM settings
+        self.refresh_pwm_settings()
 
     def on_off(self, value: bool):
         """Turn-on or off high voltage generation."""
@@ -350,6 +395,7 @@ class Window(QWidget):
     def shoot(self):
         """Software shoot with duration from UI."""
         duration, ok = QLocale().toInt(self.shoot_edit.text())
+        print("shoot")
         if ok:
             self.silicon_toaster.software_shoot(duration)
 
@@ -363,7 +409,6 @@ if __name__ == "__main__":
         dev = None
     else:
         dev = sys.argv[1]
-    window = Window(dev)
-    window.setWindowTitle("SiliconToaster")
+    window = SiliconToasterWindow(dev)
     window.show()
-    sys.exit(app.exec_())
+    sys.exit(app.exec())

@@ -1,7 +1,3 @@
 pyserial
 setuptools
-numpy
-PyQt5
-matplotlib
-scipy
-quicklog
+PyQt6
