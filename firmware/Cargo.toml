@@ -16,7 +16,7 @@ version = "0.15.1"
 features = ["stm32f215", "rt"]
 
 [dependencies.heapless]
-version = "0.7.16"
+version = "0.8.0"
 
 [profile.dev]
 panic = "abort"

@@ -1,0 +1,8 @@
+[target.thumbv6m-none-eabi]
+rustflags = [ 
+  "-C", "link-arg=-Tscript.ld",
+  ]
+runner = "qemu-system-arm -cpu cortex-m3 -machine netduino2 -nographic -kernel"
+
+[build]
+target = "thumbv6m-none-eabi"
