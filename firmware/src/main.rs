@@ -120,6 +120,7 @@ fn set_high_voltage_generator(peripherals: &stm32f215::Peripherals, state: bool)
 /// * `width` - Comparator value for the counter. Defines the PWM positive pulse
 ///     width.
 fn set_pwm_parameters(tim1: &stm32f215::TIM1, period: u16, width: u16) -> Result<(), ()> {
+    let width = width.clamp(0u16, 120u16);
     if width > period {
         return Err(());
     }
@@ -306,7 +307,9 @@ pub extern "C" fn _start() -> ! {
         let now = sys_timer.get_ticks();
 
         if adc_ctrl.needs_control(now) {
-            current_width = adc_ctrl.next_control_output(adc_result, now) as u16;
+            let pid_output = adc_ctrl.next_control_output(adc_result, now);
+            // Clamp to min/max values
+            current_width = pid_output.clamp(0.0, current_period.into()) as u16;
             if current_width > current_period {
                 current_width = current_period;
             }
