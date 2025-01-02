@@ -6,8 +6,8 @@
 	(paper "A4")
 	(title_block
 		(title "Electromagnetic Fault Injector")
-		(date "2019-10-29")
-		(rev "0.1")
+		(date "2025-01-02")
+		(rev "0.3")
 		(company "Ledger")
 	)
 	(lib_symbols
@@ -6270,7 +6270,7 @@
 			(uuid "45ee6c3e-b6a5-440e-9406-c9dcf1c62594")
 		)
 		(instances
-			(project ""
+			(project "emfi"
 				(path "/e32ee344-1030-4498-9cac-bfbf7540faf4/00000000-0000-0000-0000-00005d9f87d8"
 					(reference "J8")
 					(unit 1)
@@ -6367,7 +6367,7 @@
 			(uuid "a0221393-e151-40a5-887b-05954340cfd8")
 		)
 		(instances
-			(project ""
+			(project "emfi"
 				(path "/e32ee344-1030-4498-9cac-bfbf7540faf4/00000000-0000-0000-0000-00005d9f87d8"
 					(reference "T1")
 					(unit 1)

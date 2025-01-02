@@ -6,8 +6,8 @@
 	(paper "A4")
 	(title_block
 		(title "Electromagnetic Fault Injector")
-		(date "2019-10-29")
-		(rev "0.1")
+		(date "2025-01-02")
+		(rev "0.3")
 		(company "Ledger")
 	)
 	(lib_symbols
