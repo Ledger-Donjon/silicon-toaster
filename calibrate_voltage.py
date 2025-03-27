@@ -9,7 +9,7 @@ import datetime
 from time import sleep
 import quicklog
 
-toaster = SiliconToaster("/dev/ttyUSB3")
+toaster = SiliconToaster()
 toaster.set_adc_control_on_off(False)
 toaster.on_off(True)
 
