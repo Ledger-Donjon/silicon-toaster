@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 """
 This script is to perform measures on the obtained value of "read_voltage()" after a certain
 time, according to 'period' and 'width' parameters.
