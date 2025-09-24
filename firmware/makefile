@@ -14,5 +14,5 @@ flash:
 	stm32flash -w silicontoaster.bin -v -g 0 /dev/ttyUSB0
 
 flash-debug:
-	stm32flash -w silicontoaster.debug.bin -v -g 0 /dev/tty.usbserial-BG017ZG9
+	stm32flash -w silicontoaster.debug.bin -v -g 0 /dev/ttyUSB0
 
