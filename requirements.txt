@@ -4,4 +4,4 @@ numpy
 PyQt5
 matplotlib
 scipy
-quicklog
+git+https://github.com/Ledger-Donjon/quicklog.git

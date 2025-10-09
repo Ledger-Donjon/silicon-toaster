@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 """
 This script is to perform measures on the obtained value of "read_voltage()" after a certain
 time, according to 'period' and 'width' parameters.
@@ -9,7 +9,8 @@ import datetime
 from time import sleep
 import quicklog
 
-toaster = SiliconToaster("/dev/ttyUSB3")
+toaster = SiliconToaster()
+toaster.set_adc_control_on_off(False)
 toaster.on_off(True)
 
 avg_count = 100
