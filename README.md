@@ -12,6 +12,44 @@ SiliconToaster is an open-source hardware electromagnetic fault injection device
 
 **Warning: this device is experimental and for research purpose only. High-voltage is exposed on the PCB, which can present electrical hazard. Use with caution and at your own risk. Beware that the coil body is connected to the high potential, NOT at the ground. Also, the exposed capacitor bank stores an important amount of energy.**
 
+## Building the firmware
+
+To build the firmware, rust shall be installed on your system (see [instructions](https://www.rust-lang.org/tools/install) for installation).
+
+The rust toolchain for Armv6-M Thumb must be installed:
+
+```
+rustup target add thumbv6m-none-eabi
+```
+
+The firmware can then be compiled using cargo:
+
+```
+cd firmware
+cargo objcopy --release --bin silicontoaster -- -O binary silicontoaster.bin
+```
+
+To flash the device, stm32flash utility is required. The MCU bootloader can be enabled by shorting the header close to the USB connector using a jumper, before connecting the PCB on USB. Then the following command will flash the MCU (replace `/dev/ttyUSB0` with the serial device in your situation):
+
+```
+stm32flash -w silicontoaster.bin -v -g 0 /dev/ttyUSB0
+```
+
+Alternatively, a makefile can run those steps:
+
+```
+cd firmware
+make all
+make flash
+```
+
+To enable device recognition, the FTDI USB-serial converter must be flashed using ftdi_eeprom tool. Warning: be sure no other FTDI device is connected before running this command!
+
+```
+cd ftdi
+bash flash.sh
+```
+
 ## Publication
 
 This work was published in our [Paper](https://eprint.iacr.org/2020/1115.pdf) and presented during [Hardwear.io 2020 conference](https://hardwear.io/archives/netherlands-2020/).
