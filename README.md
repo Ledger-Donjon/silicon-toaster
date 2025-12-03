@@ -65,3 +65,11 @@ This work was published in our [Paper](https://eprint.iacr.org/2020/1115.pdf) an
 ## Licensing
 
 SiliconToaster is released under GNU Lesser General Public License version 3 (LGPLv3). See LICENSE and LICENSE.LESSER for license detail.
+
+## Contributions
+
+You are really welcomed to contribute to this project, by giving your feedbacks through Issues, and propose some changes with Pull Requests.
+
+We would like to thank following contributors for this project:
+
+- Sven Freud, from Germany

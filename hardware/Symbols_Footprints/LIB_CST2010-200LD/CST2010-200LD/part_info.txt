@@ -1,0 +1,9 @@
+Manufacturer=COILCRAFT
+PartNumber=CST2010-200LD
+PartCategory=Transformer
+PackageCategory=Other
+PinCount=12
+Version=1.2
+Released=2020-07-09 10:28:32
+Downloaded=2024-09-12 19:41:11
+3D=N
