@@ -50,6 +50,14 @@ cd ftdi
 bash flash.sh
 ```
 
+## Running the software
+
+To use the device, run `python3 silicontoaster/tool.py`. This will run a graphical interface that allows setting the operating voltage and display in real-time the voltage in the capacitors bank.
+
+When running for the first time, configure the charge pump PID settings to `Kp`, `Ki` and `Kd` to 1. Be sure to have the jumper J5 installed (position closest to the USB).
+
+The provided calibration values should work fine by default, it is not necessary to calibrate the device by yourself unless you want more accurate measurements.
+
 ## Publication
 
 This work was published in our [Paper](https://eprint.iacr.org/2020/1115.pdf) and presented during [Hardwear.io 2020 conference](https://hardwear.io/archives/netherlands-2020/).
